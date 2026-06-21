@@ -73,7 +73,7 @@
     release/<version> git tag.
   -->
   <properties>
-    <revision>0.0.1</revision>
+    <revision>0.0.2</revision>
   </properties>
 
   <subprojects>
@@ -113,9 +113,11 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
             <configuration>
-              <!-- value uses FFM / JPMS; keep a javadoc warning from blocking the release. The jar still
-                   ships, which is what Maven Central requires. -->
-              <failOnError>false</failOnError>
+              <!-- Relax doclint's "missing" group (no @param / @return / comment) so trivial documentation gaps
+                   do not fail javadoc generation. Real javadoc errors (broken @link, malformed HTML, bad
+                   references) are still fatal — better to fail the release loudly than ship a broken/empty
+                   javadoc jar that the Central Portal rejects (which is what failOnError=false used to mask). -->
+              <doclint>all,-missing</doclint>
             </configuration>
             <executions>
               <execution>

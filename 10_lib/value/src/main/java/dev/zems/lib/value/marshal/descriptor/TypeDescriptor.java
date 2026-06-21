@@ -235,7 +235,7 @@ public sealed interface TypeDescriptor<
    * <p>
    * Results are cached per (Class, fieldName) via {@link ClassValue}, so repeated lookups return the same instance.
    *
-   * <h3>Generic types</h3>
+   * <h4>Generic types</h4>
    *
    * <p>
    * Java erasure means {@code Box<Foo>} and {@code Box<Bar>} share the same {@code Class<Box>} at runtime, so this
@@ -309,7 +309,7 @@ public sealed interface TypeDescriptor<
    * {@link ScalarTypeDescriptor} must describe an assignable class) runs on every call against the cached raw value —
    * so two callers with different generic type expectations get correct results without polluting the cache.
    *
-   * <h3>Generic types</h3>
+   * <h4>Generic types</h4>
    *
    * <p>
    * The cache key is {@code (Class, fieldName)} only, so {@code Box<Foo>} and {@code Box<Bar>} share one descriptor.

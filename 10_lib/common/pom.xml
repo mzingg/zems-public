@@ -22,6 +22,11 @@
       reference to common in value's POM is harmless to consumers (test scope is not transitive).
     -->
     <maven.deploy.skip>true</maven.deploy.skip>
+    <!--
+      The placeholder main jar has no public/protected types, so javadoc errors with "No public or protected
+      classes found to document". common is not deployed, so skip its javadoc rather than ship an empty jar.
+    -->
+    <maven.javadoc.skip>true</maven.javadoc.skip>
   </properties>
 
   <build>
