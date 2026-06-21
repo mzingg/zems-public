@@ -5,10 +5,8 @@
   xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd"
 >
   <!--
-    Release-time Maven settings for the public repo's deploy pipeline (.github/workflows/release.yml):
-
-      nix develop .#release --command \
-        mvn -s .mvn/release-settings.xml -Prelease,releaseGate -pl 10_lib/value -am deploy
+    Release-time Maven settings for the public repo's deploy pipeline (.github/workflows/release.yml). The deploy runs
+    the release profile against this file (passed with the Maven -s option), inside the nix release shell.
 
     No secrets live in this file. The Central Portal token is read from the environment
     (CENTRAL_TOKEN_USERNAME / CENTRAL_TOKEN_PASSWORD), which CI injects from GitHub secrets. The GPG passphrase is
