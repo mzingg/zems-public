@@ -1,16 +1,22 @@
-name: Release to Maven Central
+name: Release to GitHub Packages
 
 # Cuts a release when a `release/<version>` tag is pushed (e.g. release/0.0.1). The promote tooling that pushes the tag
 # also stamps the same version into the root POM's <revision>, so this build needs no -Drevision — it reads the
 # committed version. A guard below fails the run if the tag and the committed <revision> disagree.
 #
-# Publishes the value library (and its parent POM chain) to the Sonatype Central Portal, signed. autoPublish is false
-# (see the release profile in the root pom), so the uploaded bundle waits for a manual "Publish" in the Portal.
+# INTERIM target: GitHub Packages (https://maven.pkg.github.com/mzingg/zems-public), via the standard
+# maven-deploy-plugin (the distributionManagement repo in the root POM). Maven Central is deferred until Maven 4 rc-6 —
+# on rc-5 the central-publishing plugin uploads the inference-only build POM and Central rejects it. NOTE: consuming
+# from GitHub Packages requires a GitHub token even for public packages.
 
 on:
   push:
     tags:
       - 'release/**'
+
+permissions:
+  contents: read
+  packages: write # deploy to this repo's GitHub Packages with the automatic GITHUB_TOKEN
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -53,14 +59,15 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: nix develop .#release --command bash -c 'echo "$GPG_PRIVATE_KEY" | gpg --batch --import'
 
-      - name: Deploy to Maven Central
+      - name: Deploy to GitHub Packages
         env:
-          CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
-          CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          # GITHUB_ACTOR is provided automatically; GITHUB_TOKEN must be passed explicitly. Together they authenticate
+          # to GitHub Packages via the `github` server in release-settings.xml.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Sequential (no -T): gpg-agent does not handle parallel signing reliably.
         run: |
-          echo "Releasing dev.zems.lib:value:${GITHUB_REF_NAME#release/}"
+          echo "Releasing dev.zems.lib:value:${GITHUB_REF_NAME#release/} to GitHub Packages"
           nix develop .#release --command \
             mvn -B -Prelease,releaseGate \
               -s .mvn/release-settings.xml \

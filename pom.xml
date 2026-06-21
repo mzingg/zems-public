@@ -67,13 +67,28 @@
   </scm>
 
   <!--
+    Interim distribution: GitHub Packages on the public repo. Maven Central is deferred until Maven 4 rc-6, because
+    central-publishing 0.11.0 on rc-5 uploads the inference-only build POM as the main artifact and Central rejects it
+    (the resolved consumer POM ships only as a side artifact). Plain maven-deploy-plugin — which GitHub Packages uses —
+    deploys the consumer POM AS the main .pom correctly, so this path works on rc-5. NOTE: consuming from GitHub
+    Packages requires a GitHub token even for public packages. Switch back to central-publishing for Central on rc-6.
+  -->
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <name>GitHub Packages (zems-public)</name>
+      <url>https://maven.pkg.github.com/mzingg/zems-public</url>
+    </repository>
+  </distributionManagement>
+
+  <!--
     The released version. Unlike the monorepo (which keeps the ${revision} dev sentinel on main), the public
     mirror carries the real version: 80_ops/promote/promote.sh stamps the release version into the placeholder
     below when it assembles the tree, so the public build/deploy needs no -Drevision and the value matches the
     release/<version> git tag.
   -->
   <properties>
-    <revision>0.0.3</revision>
+    <revision>0.0.4</revision>
   </properties>
 
   <subprojects>
@@ -150,50 +165,12 @@
             </executions>
           </plugin>
           <!--
-            On Maven 4.0.0-rc-5 the central-publishing extension neither auto-binds its `publish` goal to deploy nor
-            reliably suppresses the default maven-deploy-plugin (which fails — there is no distributionManagement). So
-            wire it explicitly: unbind the default-deploy execution (phase=none) and bind central-publishing:publish to
-            deploy ourselves. extensions=true still loads the artifact collector. The plugin uploads one aggregated
-            bundle for the reactor.
+            Deploy is the default maven-deploy-plugin (no extra plugin needed): it pushes to the distributionManagement
+            repository above (GitHub Packages) and, unlike central-publishing 0.11.0 on Maven 4 rc-5, deploys the
+            resolved consumer POM as the main .pom. Maven Central via central-publishing is deferred until rc-6 — to
+            switch back, drop distributionManagement and restore the central-publishing plugin (extensions=true,
+            publishingServerId=central, autoPublish=true, waitUntil=published) bound to the deploy phase.
           -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-deploy-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>default-deploy</id>
-                <phase>none</phase>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.sonatype.central</groupId>
-            <artifactId>central-publishing-maven-plugin</artifactId>
-            <extensions>true</extensions>
-            <configuration>
-              <publishingServerId>central</publishingServerId>
-              <!--
-                Hands-off publishing: after the bundle uploads and PASSES validation it is published to Maven Central
-                with no manual step. waitUntil=published makes the release job block until publishing completes, so a
-                green CI run means the version is live (waitMaxTime is 1800s/30min, the plugin minimum — a slower-than-
-                that Central run would time the job out even though publishing continues). Maven Central is immutable:
-                a published version cannot be unpublished or overwritten. Set autoPublish=false to go back to a manual
-                "Publish" review in the Portal.
-              -->
-              <autoPublish>true</autoPublish>
-              <waitUntil>published</waitUntil>
-              <deploymentName>dev.zems.lib:value ${revision}</deploymentName>
-            </configuration>
-            <executions>
-              <execution>
-                <id>central-publish</id>
-                <phase>deploy</phase>
-                <goals>
-                  <goal>publish</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
         </plugins>
       </build>
     </profile>

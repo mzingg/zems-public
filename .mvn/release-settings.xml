@@ -8,11 +8,18 @@
     Release-time Maven settings for the public repo's deploy pipeline (.github/workflows/release.yml). The deploy runs
     the release profile against this file (passed with the Maven -s option), inside the nix release shell.
 
-    No secrets live in this file. The Central Portal token is read from the environment
-    (CENTRAL_TOKEN_USERNAME / CENTRAL_TOKEN_PASSWORD), which CI injects from GitHub secrets. The GPG passphrase is
-    read separately by maven-gpg-plugin from MAVEN_GPG_PASSPHRASE.
+    No secrets live in this file; values come from the environment (GitHub Actions injects them):
+      - github server: matches distributionManagement id `github`; the deploy authenticates to GitHub Packages with the
+        workflow's GITHUB_ACTOR + GITHUB_TOKEN (packages:write on its own repo). This is the active interim target.
+      - central server: for the deferred Maven Central path (rc-6); unused while publishing goes to GitHub Packages.
+    The GPG passphrase is read separately by maven-gpg-plugin from MAVEN_GPG_PASSPHRASE.
   -->
   <servers>
+    <server>
+      <id>github</id>
+      <username>${env.GITHUB_ACTOR}</username>
+      <password>${env.GITHUB_TOKEN}</password>
+    </server>
     <server>
       <id>central</id>
       <username>${env.CENTRAL_TOKEN_USERNAME}</username>
