@@ -1,0 +1,68 @@
+name: Release to Maven Central
+
+# Cuts a release when a `release/<version>` tag is pushed (e.g. release/0.0.1). The promote tooling that pushes the tag
+# also stamps the same version into the root POM's <revision>, so this build needs no -Drevision — it reads the
+# committed version. A guard below fails the run if the tag and the committed <revision> disagree.
+#
+# Publishes the value library (and its parent POM chain) to the Sonatype Central Portal, signed. autoPublish is false
+# (see the release profile in the root pom), so the uploaded bundle waits for a manual "Publish" in the Portal.
+
+on:
+  push:
+    tags:
+      - 'release/**'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Cache Nix store
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Check tag matches committed revision
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#release/}"
+          POM_VERSION=$(sed -n 's:.*<revision>\(.*\)</revision>.*:\1:p' pom.xml | head -1)
+          echo "tag=$TAG_VERSION committed <revision>=$POM_VERSION"
+          if [ "$TAG_VERSION" != "$POM_VERSION" ]; then
+            echo "::error::release tag ($TAG_VERSION) does not match committed <revision> ($POM_VERSION)"
+            exit 1
+          fi
+
+      - name: Import GPG signing key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: nix develop .#release --command bash -c 'echo "$GPG_PRIVATE_KEY" | gpg --batch --import'
+
+      - name: Deploy to Maven Central
+        env:
+          CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+        # Sequential (no -T): gpg-agent does not handle parallel signing reliably.
+        run: |
+          echo "Releasing dev.zems.lib:value:${GITHUB_REF_NAME#release/}"
+          nix develop .#release --command \
+            mvn -B -Prelease,releaseGate \
+              -s .mvn/release-settings.xml \
+              -pl 10_lib/value -am \
+              deploy

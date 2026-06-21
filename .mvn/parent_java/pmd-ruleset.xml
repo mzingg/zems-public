@@ -1,0 +1,69 @@
+<?xml version="1.0" ?>
+<ruleset
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  name="ZEMS PMD Rules"
+  xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+  xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd"
+>
+
+  <description>PMD ruleset for ZEMS Java modules</description>
+
+  <!-- Best Practices -->
+  <rule ref="category/java/bestpractices.xml/MissingOverride" />
+  <rule ref="category/java/bestpractices.xml/UnusedAssignment" />
+  <rule ref="category/java/bestpractices.xml/UnusedLocalVariable" />
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateField" />
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod" />
+  <rule ref="category/java/bestpractices.xml/UseTryWithResources" />
+
+  <!-- Error Prone -->
+  <!-- CloseResource intentionally omitted: it cannot recognise ownership
+       transfer (assignment to a field, return from a factory, hand-off to
+       a wrapping owner) and produced too many false positives in this
+       codebase. UseTryWithResources still enforces the right pattern when
+       a try/finally close() exists in the same method. -->
+  <rule ref="category/java/errorprone.xml/EmptyCatchBlock">
+    <properties>
+      <!-- A non-empty comment inside the catch documents intent and is
+           treated as an explicit decision to swallow. -->
+      <property name="allowCommentedBlocks" value="true" />
+      <!-- Naming the exception variable `ignore`, `ignored`, or `expected`
+           also documents intent. (PMD's default; set explicitly so the
+           policy is grep-able.) -->
+      <property name="allowExceptionNameRegex" value="^(_|ignore|ignored|expected)$" />
+    </properties>
+  </rule>
+  <rule ref="category/java/errorprone.xml/MisplacedNullCheck" />
+  <!-- Catches repeated literal strings that should be extracted to a constant
+       or factored through a helper. Threshold of 4 is permissive enough to
+       allow per-type messages in builtin records but still flags genuine
+       copy-paste duplication. skipAnnotations=true so deprecation tags etc.
+       don't count. -->
+  <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
+    <properties>
+      <property name="maxDuplicateLiterals" value="4" />
+      <property name="skipAnnotations" value="true" />
+    </properties>
+  </rule>
+
+  <!-- Design -->
+  <rule ref="category/java/design.xml/SimplifyBooleanReturns" />
+  <rule ref="category/java/design.xml/SimplifyBooleanExpressions" />
+  <rule ref="category/java/design.xml/SimplifiedTernary" />
+
+  <!-- Code Style -->
+  <!-- Enforces the project rule: never use fully qualified class names — always
+       add an import. The only legitimate exception is a same-file ClassName
+       collision (e.g. java.util.List vs java.awt.List) where one side must
+       stay FQN. -->
+  <rule ref="category/java/codestyle.xml/UnnecessaryFullyQualifiedName" />
+  <!-- Catches duplicate / unused / redundant imports. The formatter (Prettier)
+       does not touch imports, so PMD owns this; it also flags imports of the
+       same simple name from different packages, java.lang imports, etc. -->
+  <rule ref="category/java/codestyle.xml/UnnecessaryImport" />
+  <!-- SignatureDeclareThrowsException is intentionally omitted: harness/
+       runner interfaces (e.g. Driver.WorkerTask) legitimately declare
+       `throws Exception` because they execute arbitrary user-supplied
+       work, mirroring Callable.call(). -->
+
+</ruleset>

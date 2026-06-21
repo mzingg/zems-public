@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+  <!--
+    CVE-2026-42582 — netty HTTP/3 QpackDecoder integer-overflow (fixed in 4.2.13.Final).
+
+    The vulnerable code lives in io.netty.handler.codec.http3.QpackDecoder, which is shipped
+    in the netty-codec-http3 (and netty-incubator-codec-http3) artifact. We do not depend on
+    that artifact — verified with `mvn dependency:list | grep netty` in 20_service/zz_baseline_service:
+    only netty-buffer / -codec / -codec-{dns,haproxy,http,http2,socks} / -common / -handler /
+    -handler-proxy / -resolver{,-dns} / -transport{,-native-unix-common} are pulled in via
+    Quarkus → Vert.x. None of those jars contain QpackDecoder.
+
+    OWASP dependency-check matches the CVE against every 4.1.x netty artifact because the NVD
+    CPE entry (cpe:2.3:a:netty:netty:*) declares versionEndExcluding=4.2.13 without a
+    per-artifact carve-out. This is a CPE-mapping false positive for our classpath.
+
+    Re-evaluate this suppression if/when we ever add an HTTP/3 codec dependency, or when the
+    Netty bump on the Quarkus/Vert.x line passes 4.2.13.Final and the suppression becomes a
+    no-op.
+  -->
+  <suppress>
+    <notes
+    ><![CDATA[
+      netty 4.1.x artifacts we ship do not contain io.netty.handler.codec.http3.QpackDecoder;
+      vulnerable code is in netty-codec-http3 only.
+    ]]></notes>
+    <packageUrl regex="true">
+      ^pkg:maven/io\.netty/netty-(buffer|codec|codec-dns|codec-haproxy|codec-http|codec-http2|codec-socks|common|handler|handler-proxy|resolver|resolver-dns|transport|transport-native-unix-common)@4\.1\.[0-9]+\.Final$
+    </packageUrl>
+    <cve>CVE-2026-42582</cve>
+  </suppress>
+
+</suppressions>

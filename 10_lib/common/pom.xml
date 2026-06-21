@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.1.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd"
+>
+
+  <parent>
+    <relativePath>../../.mvn/parent_java</relativePath>
+  </parent>
+
+  <groupId>dev.zems.lib</groupId>
+  <artifactId>common</artifactId>
+
+  <name>ZEMS (lib) | Common</name>
+
+  <properties>
+    <!--
+      common is built so downstream modules (value, tree, …) can compile and run their tests against its
+      `tests` classifier, but it is not published to Maven Central yet — its main jar is still a placeholder.
+      The release pulls common in via `-am`; this keeps it out of the deployed bundle. The test-scope
+      reference to common in value's POM is harmless to consumers (test scope is not transitive).
+    -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+  </properties>
+
+  <build>
+    <plugins>
+      <!--
+        Publish a `tests` classifier JAR alongside the main artifact carrying the
+        contract/journey annotations and the allocation-measurement helper. Downstream
+        modules consume it via `<dependency><type>test-jar</type><scope>test</scope></dependency>`.
+        Mirrors the Jackson/Guava/Spring convention of shipping reusable test utilities under a
+        `tests` classifier. parent_java already provides JUnit-jupiter at test scope, so the
+        `@Tag`-based annotations resolve in downstream tests without any extra dependency here.
+      -->
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>publish-test-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>dev/zems/lib/common/_test/**</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

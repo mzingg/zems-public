@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.1.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd"
+>
+
+  <parent>
+    <relativePath>../../.mvn/parent_java</relativePath>
+  </parent>
+
+  <groupId>dev.zems.lib</groupId>
+  <artifactId>value</artifactId>
+
+  <name>ZEMS (lib) | Value</name>
+  <description
+  >Immutable value types with explicit state and a wire-format-agnostic marshalling API. Zero runtime dependencies.</description>
+
+  <properties>
+    <!-- Marks this module for the public mirror (zems-public). The promote tooling in 80_ops/promote copies every
+         module that sets this to true (plus its build closure). Default is false, declared in the root POM. -->
+    <zems.public>true</zems.public>
+  </properties>
+
+  <dependencies>
+    <!--
+      Shared @ContractTest/@JourneyTest annotations + AllocationMeasurement helper ship from
+      10_lib/common's tests classifier. Test-scope only.
+    -->
+    <dependency>
+      <groupId>dev.zems.lib</groupId>
+      <artifactId>common</artifactId>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <!--
+      jackson-dataformat-cbor is a test-only ecosystem-parity gate. Our binary wire is CBOR
+      (RFC 8949); the Jackson CBOR codec is the most-deployed Java CBOR implementation, so
+      "our writer → Jackson reader" (and the reverse) is a meaningful interop assertion.
+      Test-scope only — the runtime library still has zero external dependencies.
+    -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-cbor</artifactId>
+      <version>2.22.0</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!--
+        Publish a `tests` classifier JAR alongside the main artifact so downstream modules can
+        depend on the round-trip harness, contract-test annotations, and other shared test
+        helpers via `<dependency><type>test-jar</type><scope>test</scope></dependency>`.
+        Mirrors the Jackson/Guava/Spring convention of shipping reusable test utilities under
+        a `tests` classifier rather than spinning up a separate `*-testing` module.
+      -->
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>publish-test-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+            <configuration>
+              <!--
+                Restrict the test-jar contents to the published harness/annotations. Without
+                this every test class would be shipped, polluting downstream classpaths.
+              -->
+              <includes>
+                <include>dev/zems/lib/value/marshal/RoundTripFormatHarness*.class</include>
+                <!-- Value-aware AssertJ assertions (entry point + assertion class). Exact names so the
+                     ValueAssertTest class is not shipped. -->
+                <include>dev/zems/lib/value/ValueAssert.class</include>
+                <include>dev/zems/lib/value/ValueAssertions.class</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

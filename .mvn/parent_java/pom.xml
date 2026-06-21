@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.1.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd"
+>
+
+  <parent>
+    <relativePath>../parent_common</relativePath>
+  </parent>
+
+  <artifactId>parent_java</artifactId>
+  <packaging>pom</packaging>
+
+  <name>ZEMS (mvn) | Java Common Parent Module</name>
+  <description>Shared Java build, dependency, and quality-gate configuration for ZEMS Java modules.</description>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <zems.checkstyle.config>${project.rootDirectory}/.mvn/parent_java/checkstyle.xml</zems.checkstyle.config>
+    <zems.pmd.config>${project.rootDirectory}/.mvn/parent_java/pmd-ruleset.xml</zems.pmd.config>
+    <junit.version>6.1.0</junit.version>
+    <mockito.version>5.23.0</mockito.version>
+    <!-- JMH (Java Microbenchmark Harness): only the quality-tier value_benchmark module uses it. -->
+    <jmh.version>1.37</jmh.version>
+    <!-- libGDX + VisUI: the autocracy_libgdx desktop frontend (the chosen world renderer). libGDX pulls LWJGL 3.3.x
+         transitively, so LWJGL itself is not managed here. -->
+    <gdx.version>1.14.2</gdx.version>
+    <visui.version>1.5.9</visui.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.22.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jline</groupId>
+        <artifactId>jline</artifactId>
+        <version>4.2.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-core</artifactId>
+        <version>${jmh.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-generator-annprocess</artifactId>
+        <version>${jmh.version}</version>
+      </dependency>
+      <!-- libGDX desktop frontend (autocracy_libgdx). -->
+      <dependency>
+        <groupId>com.badlogicgames.gdx</groupId>
+        <artifactId>gdx</artifactId>
+        <version>${gdx.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.badlogicgames.gdx</groupId>
+        <artifactId>gdx-backend-lwjgl3</artifactId>
+        <version>${gdx.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.badlogicgames.gdx</groupId>
+        <artifactId>gdx-platform</artifactId>
+        <version>${gdx.version}</version>
+        <classifier>natives-desktop</classifier>
+      </dependency>
+      <dependency>
+        <groupId>com.kotcrab.vis</groupId>
+        <artifactId>vis-ui</artifactId>
+        <version>${visui.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>4.0.0-M1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>properties</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <includes>
+            <include>**/*Test.java</include>
+          </includes>
+          <!--suppress UnresolvedMavenProperty -->
+          <argLine>@{argLine} -Xshare:off -javaagent:${org.mockito:mockito-core:jar}</argLine>
+          <!-- JUnit 5 parallel execution: different test classes run
+               concurrently, methods within a class stay serial. The
+               dynamic strategy auto-scales threads to ~1 per core.
+               Tests with shared mutable state can opt out via
+               @Execution(SAME_THREAD) on the class. -->
+          <properties>
+            <configurationParameters>
+              junit.jupiter.execution.parallel.enabled=true
+              junit.jupiter.execution.parallel.mode.default=same_thread
+              junit.jupiter.execution.parallel.mode.classes.default=concurrent
+              junit.jupiter.execution.parallel.config.strategy=dynamic
+              junit.jupiter.execution.parallel.config.dynamic.factor=1
+            </configurationParameters>
+          </properties>
+        </configuration>
+      </plugin>
+    </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>3.6.0</version>
+          <dependencies>
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>13.6.0</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <configLocation>checkstyle.xml</configLocation>
+            <consoleOutput>true</consoleOutput>
+            <failsOnError>true</failsOnError>
+            <linkXRef>false</linkXRef>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-pmd-plugin</artifactId>
+          <version>3.28.0</version>
+          <dependencies>
+            <dependency>
+              <groupId>net.sourceforge.pmd</groupId>
+              <artifactId>pmd-core</artifactId>
+              <version>7.25.0</version>
+            </dependency>
+            <dependency>
+              <groupId>net.sourceforge.pmd</groupId>
+              <artifactId>pmd-java</artifactId>
+              <version>7.25.0</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <rulesets>
+              <ruleset>${zems.pmd.config}</ruleset>
+            </rulesets>
+            <failOnViolation>true</failOnViolation>
+            <linkXRef>false</linkXRef>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.8.15</version>
+          <executions>
+            <execution>
+              <id>prepare-agent</id>
+              <phase>initialize</phase>
+              <goals>
+                <goal>prepare-agent</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>report</id>
+              <phase>test</phase>
+              <goals>
+                <goal>report</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.owasp</groupId>
+          <artifactId>dependency-check-maven</artifactId>
+          <version>12.2.2</version>
+          <configuration>
+            <!-- NVD cache lives outside the local repo so it survives
+                 ~/.m2 wipes and is shared across module checkouts. -->
+            <dataDirectory>${ops.var.dir}/owasp-nvd</dataDirectory>
+            <!-- Fail on high/critical advisories (CVSS >= 7). -->
+            <failBuildOnCVSS>7.0</failBuildOnCVSS>
+            <!-- Refresh NVD on stale cache (~24h). Subsequent runs are
+                 offline against the cache. -->
+            <autoUpdate>true</autoUpdate>
+            <!-- Free NVD API key drastically raises the rate limit and
+                 makes the initial download viable. Request one at
+                 https://nvd.nist.gov/developers/request-an-api-key and
+                 export NVD_API_KEY in your shell (or nix devShell). -->
+            <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+            <!-- Skip scopes that don't ship in our artifacts. -->
+            <skipProvidedScope>true</skipProvidedScope>
+            <skipSystemScope>true</skipSystemScope>
+            <!-- Disable Sonatype OSS Index (online API) to keep the
+                 analyzer NVD-only and offline-friendly. -->
+            <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
+            <!-- We don't ship .NET assemblies; the analyzer otherwise
+                 errors out unless dotnet 8 is on PATH. -->
+            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+            <!-- Documented per-CVE false-positive suppressions. Every
+                 entry must explain WHY the dependency is not actually
+                 affected; see file header. -->
+            <suppressionFiles>
+              <suppressionFile>${project.rootDirectory}/.mvn/parent_java/owasp-suppressions.xml</suppressionFile>
+            </suppressionFiles>
+          </configuration>
+          <executions>
+            <execution>
+              <id>commit-gate-dependency-check</id>
+              <phase>none</phase>
+              <goals>
+                <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <profiles>
+    <!-- Pre-commit gate: checkstyle + PMD, then tests via the verify lifecycle.
+         Formatting is NOT here — treefmt (the single formatter) handles it in the
+         pre-commit hook. Activate explicitly:
+           mvn -PcommitGate verify -->
+    <profile>
+      <id>commitGate</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>commit-gate-checkstyle</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-pmd-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>commit-gate-pmd</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+<!--          <plugin>-->
+<!--            <groupId>org.owasp</groupId>-->
+<!--            <artifactId>dependency-check-maven</artifactId>-->
+<!--            <executions>-->
+<!--              <execution>-->
+<!--                <id>commit-gate-dependency-check</id>-->
+<!--                <phase>verify</phase>-->
+<!--                <goals>-->
+<!--                  <goal>check</goal>-->
+<!--                </goals>-->
+<!--              </execution>-->
+<!--            </executions>-->
+<!--          </plugin>-->
+        </plugins>
+      </build>
+    </profile>
+    <!-- Release gate: counterpart to commitGate, kept as a separate profile
+         so the two can diverge (e.g. lower CVSS threshold, SBOM generation,
+         signing) without rewiring callers. Spotless is intentionally NOT
+         wired here — formatting is enforced on the commit side via the
+         pre-commit hook, so CI doesn't need IntelliJ IDEA installed.
+         Activate explicitly:
+           mvn -PreleaseGate verify -->
+    <profile>
+      <id>releaseGate</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>release-gate-checkstyle</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-pmd-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>release-gate-pmd</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+<!--          <plugin>-->
+<!--            <groupId>org.owasp</groupId>-->
+<!--            <artifactId>dependency-check-maven</artifactId>-->
+<!--            <executions>-->
+<!--              <execution>-->
+<!--                <id>release-gate-dependency-check</id>-->
+<!--                <phase>verify</phase>-->
+<!--                <goals>-->
+<!--                  <goal>check</goal>-->
+<!--                </goals>-->
+<!--              </execution>-->
+<!--            </executions>-->
+<!--          </plugin>-->
+        </plugins>
+      </build>
+    </profile>
+    <!-- Promote gate: the monorepo-side check the promote tooling (80_ops/promote/promote.sh) runs on the marked
+         public module set before assembling and pushing the public mirror (zems-public). Kept as a separate profile
+         from commitGate/releaseGate so it can diverge later (e.g. assert each public module carries the metadata
+         Maven Central requires, or that the public build closure is self-contained). For now it runs the same
+         checkstyle + PMD, then tests via the verify lifecycle. Activate explicitly:
+           mvn -PpromoteGate verify -->
+    <profile>
+      <id>promoteGate</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>promote-gate-checkstyle</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-pmd-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>promote-gate-pmd</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

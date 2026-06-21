@@ -1,0 +1,183 @@
+<?xml version="1.0" ?>
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+  "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!--
+    Semantic checks for ZEMS Java modules. Pure formatting (whitespace,
+    brace placement, brace insertion, indentation, line wrapping, blank
+    lines, annotation placement, import order) is enforced by Spotless via
+    the Eclipse JDT formatter and is intentionally not duplicated here.
+
+    Violations are errors: the commitGate fails on any rule mismatch.
+ -->
+<module name="Checker">
+  <property name="charset" value="UTF-8" />
+
+  <property name="fileExtensions" value="java, properties, xml" />
+  <!-- Excludes all 'module-info.java' files              -->
+  <!-- See https://checkstyle.org/config_filefilters.html -->
+  <module name="BeforeExecutionExclusionFileFilter">
+    <property name="fileNamePattern" value="module\-info\.java$" />
+  </module>
+  <!-- https://checkstyle.org/config_filters.html#SuppressionFilter -->
+  <module name="SuppressionFilter">
+    <property
+      name="file"
+      value="${org.checkstyle.google.suppressionfilter.config}"
+      default="checkstyle-suppressions.xml"
+    />
+    <property name="optional" value="true" />
+  </module>
+
+  <!-- Hard backstop. Spotless wraps where it can (lineSplit=160); this
+       catches lines the formatter could not split. -->
+  <module name="LineLength">
+    <property name="fileExtensions" value="java" />
+    <property name="max" value="160" />
+    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
+  </module>
+
+  <module name="TreeWalker">
+    <module name="OuterTypeFilename" />
+    <module name="IllegalTokenText">
+      <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL" />
+      <property name="format" value="\\u00(09|0(a|A)|0(c|C)|0(d|D)|22|27|5(C|c))|\\(0(10|11|12|14|15|42|47)|134)" />
+      <property
+        name="message"
+        value="Consider using special escape sequence instead of octal value or Unicode escaped value."
+      />
+    </module>
+    <module name="AvoidStarImport">
+      <property name="excludes" value="javax.swing,java.awt" />
+    </module>
+    <module name="OneTopLevelClass" />
+    <module name="EmptyBlock">
+      <property name="option" value="TEXT" />
+      <property name="tokens" value="LITERAL_TRY, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE, LITERAL_SWITCH" />
+    </module>
+    <module name="ArrayTypeStyle" />
+    <module name="FallThrough" />
+    <module name="UpperEll" />
+    <module name="ModifierOrder" />
+    <!-- Package segments: lowercase identifier with optional underscores
+         (matches the module_name convention used across the repo). -->
+    <module name="PackageName">
+      <property name="format" value="^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$" />
+      <message key="name.invalidPattern" value="Package name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="TypeName">
+      <property
+        name="tokens"
+        value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF,
+                    ANNOTATION_DEF, RECORD_DEF"
+      />
+      <message key="name.invalidPattern" value="Type name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="MemberName">
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$" />
+      <message key="name.invalidPattern" value="Member name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <!-- Standard camelCase identifier, plus Java 21+ unused-name '_'. -->
+    <module name="ParameterName">
+      <property name="format" value="^(_|[a-z][a-zA-Z0-9]*)$" />
+      <message key="name.invalidPattern" value="Parameter name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="LambdaParameterName">
+      <property name="format" value="^(_|[a-z][a-zA-Z0-9]*)$" />
+      <message key="name.invalidPattern" value="Lambda parameter name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="CatchParameterName">
+      <property name="format" value="^(_|[a-z][a-zA-Z0-9]*)$" />
+      <message key="name.invalidPattern" value="Catch parameter name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="LocalVariableName">
+      <property name="format" value="^(_|[a-z][a-zA-Z0-9]*)$" />
+      <message key="name.invalidPattern" value="Local variable name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="PatternVariableName">
+      <property name="format" value="^(_|[a-z][a-zA-Z0-9]*)$" />
+      <message key="name.invalidPattern" value="Pattern variable name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="RecordComponentName">
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$" />
+      <message key="name.invalidPattern" value="Record component name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <!-- Type parameters: any PascalCase identifier (covers single-letter
+         T/K/V as well as descriptive names like Described, Expected). -->
+    <module name="ClassTypeParameterName">
+      <property name="format" value="^[A-Z][a-zA-Z0-9]*$" />
+      <message key="name.invalidPattern" value="Class type name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="RecordTypeParameterName">
+      <property name="format" value="^[A-Z][a-zA-Z0-9]*$" />
+      <message key="name.invalidPattern" value="Record type name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="MethodTypeParameterName">
+      <property name="format" value="^[A-Z][a-zA-Z0-9]*$" />
+      <message key="name.invalidPattern" value="Method type name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="InterfaceTypeParameterName">
+      <property name="format" value="^[A-Z][a-zA-Z0-9]*$" />
+      <message key="name.invalidPattern" value="Interface type name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <module name="MethodName">
+      <property name="format" value="^[a-z][a-zA-Z0-9_]*$" />
+      <message key="name.invalidPattern" value="Method name ''{0}'' must match pattern ''{1}''." />
+    </module>
+    <!-- Generous threshold (counts non-empty/non-comment lines). Catches utility
+         methods that have grown without intent; doesn't fight legitimate sealed-
+         pattern dispatch which often runs 30-50 lines but stays readable. -->
+    <module name="MethodLength">
+      <property name="max" value="200" />
+      <property name="countEmpty" value="false" />
+    </module>
+    <module name="NoFinalizer" />
+    <!-- Allow up to 4 consecutive capitals so common abbreviations
+         (DSL, URL, HTML, XML) and prefixed types (VTable, VRow) are fine. -->
+    <module name="AbbreviationAsWordInName">
+      <property name="ignoreFinal" value="false" />
+      <property name="allowedAbbreviationLength" value="3" />
+      <property
+        name="tokens"
+        value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, ANNOTATION_DEF, ANNOTATION_FIELD_DEF,
+                    PARAMETER_DEF, VARIABLE_DEF, METHOD_DEF, PATTERN_VARIABLE_DEF, RECORD_DEF,
+                    RECORD_COMPONENT_DEF"
+      />
+    </module>
+    <module name="OverloadMethodsDeclarationOrder" />
+    <module name="NonEmptyAtclauseDescription" />
+    <module name="InvalidJavadocPosition" />
+    <module name="JavadocTagContinuationIndentation" />
+    <module name="SummaryJavadoc">
+      <property
+        name="forbiddenSummaryFragments"
+        value="^@return the *|^This method returns |^A [{]@code [a-zA-Z0-9]+[}]( is a )"
+      />
+    </module>
+    <module name="JavadocParagraph" />
+    <module name="RequireEmptyLineBeforeBlockTagGroup" />
+    <module name="AtclauseOrder">
+      <property name="tagOrder" value="@param, @return, @throws, @deprecated" />
+      <property name="target" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF, VARIABLE_DEF" />
+    </module>
+    <module name="JavadocMethod">
+      <property name="accessModifiers" value="public" />
+      <property name="allowMissingParamTags" value="true" />
+      <property name="allowMissingReturnTag" value="true" />
+      <property name="allowedAnnotations" value="Override, Test" />
+      <property name="tokens" value="METHOD_DEF, CTOR_DEF, ANNOTATION_FIELD_DEF, COMPACT_CTOR_DEF" />
+    </module>
+    <module name="SingleLineJavadoc" />
+    <module name="EmptyCatchBlock">
+      <property name="exceptionVariableName" value="^(expected|ignore|ignored)$" />
+    </module>
+    <!-- https://checkstyle.org/config_filters.html#SuppressionXpathFilter -->
+    <module name="SuppressionXpathFilter">
+      <property
+        name="file"
+        value="${org.checkstyle.google.suppressionxpathfilter.config}"
+        default="checkstyle-xpath-suppressions.xml"
+      />
+      <property name="optional" value="true" />
+    </module>
+  </module>
+</module>

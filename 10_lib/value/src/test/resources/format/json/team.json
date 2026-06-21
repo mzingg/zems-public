@@ -1,0 +1,30 @@
+{
+  "__version": 1,
+  "name": "Engineering",
+  "active": true,
+  "lead": {
+    "name": "Alice",
+    "age": 35,
+    "role": "Principal Engineer"
+  },
+  "members": {
+    "size": 3,
+    "0": {
+      "name": "Alice",
+      "age": 35,
+      "role": "Principal Engineer"
+    },
+    "1": {
+      "name": "Bob",
+      "age": 28,
+      "role": "Software Engineer"
+    },
+    "2": {
+      "name": "Charlie",
+      "age": 42,
+      "role": "Staff Engineer"
+    }
+  },
+  "budget": null,
+  "description": "The \"core\" engineering team.\nFounded in 2020.\tBuilds infrastructure."
+}

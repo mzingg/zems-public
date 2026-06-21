@@ -1,0 +1,30 @@
+### Build Output Directories
+target
+node_modules
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Nix Tools (symlinks to nix store)
+/.nix/tools/
+
+### all local only files
+**/*.local.*

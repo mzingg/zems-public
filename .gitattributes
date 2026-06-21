@@ -1,0 +1,24 @@
+# Default to LF line endings for all text files
+* text=auto eol=lf
+
+# Ensure Windows batch scripts use CRLF line endings
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Ensure binary files are not modified
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.mp4 binary
+*.mp3 binary
+*.exe binary
+*.dll binary
+
+# Special Git handling for lock files
+package-lock.json merge=union

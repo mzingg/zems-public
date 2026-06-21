@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  PUBLIC root POM for the zems-public mirror. This is an overlay: 80_ops/promote/promote.sh copies it over the
+  assembled tree as the public repo's root pom.xml. It mirrors the monorepo root pom.xml but:
+    - trims <subprojects> to only the public modules + their parent chain,
+    - drops the with-baseline-modules profile (no baselines are public),
+    - keeps the release profile here (the public repo is the only place that deploys to Maven Central),
+    - carries a real <revision> (promote stamps the release version into the placeholder below).
+  Keep the shared regions (metadata, enforcer, pluginManagement) in step with the monorepo root pom.xml — the promote
+  drift guard fails the run if the pinned plugin versions diverge.
+-->
+<project
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.1.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd"
+>
+
+  <groupId>dev.zems</groupId>
+  <artifactId>root</artifactId>
+  <packaging>pom</packaging>
+  <version>${revision}</version>
+
+  <name>ZEMS (root)</name>
+  <description
+  >Aggregator and shared build configuration for ZEMS, the Zero-dependency Extensible Module Suite.</description>
+  <url>https://github.com/mzingg/zems-public</url>
+
+  <organization>
+    <name>ZEMS</name>
+    <url>https://zems.dev</url>
+  </organization>
+
+  <!--
+    Shared publish metadata. Maven 4's consumer POM keeps the parent reference rather than inlining it, so
+    the parent chain (root, parent_common, parent_java) is published too; Maven Central reads licence, scm,
+    and developers by walking that chain. `name` and `description` are NOT inherited and must sit on every
+    published artifact directly.
+  -->
+  <licenses>
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>mzingg</id>
+      <name>Markus Zingg</name>
+      <email>zingg.engineering@gmail.com</email>
+    </developer>
+  </developers>
+
+  <!--
+    inherit.append.path="false" stops Maven appending the child artifactId to the inherited URLs, so every
+    module reports the one repository address instead of a made-up per-module path.
+  -->
+  <scm
+    child.scm.connection.inherit.append.path="false"
+    child.scm.developerConnection.inherit.append.path="false"
+    child.scm.url.inherit.append.path="false"
+  >
+    <connection>scm:git:https://github.com/mzingg/zems-public.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/mzingg/zems-public.git</developerConnection>
+    <url>https://github.com/mzingg/zems-public</url>
+  </scm>
+
+  <!--
+    The released version. Unlike the monorepo (which keeps the ${revision} dev sentinel on main), the public
+    mirror carries the real version: 80_ops/promote/promote.sh stamps the release version into the placeholder
+    below when it assembles the tree, so the public build/deploy needs no -Drevision and the value matches the
+    release/<version> git tag.
+  -->
+  <properties>
+    <revision>0.0.1</revision>
+  </properties>
+
+  <subprojects>
+    <subproject>.mvn/parent_common</subproject>
+    <subproject>.mvn/parent_java</subproject>
+    <subproject>10_lib/common</subproject>
+    <subproject>10_lib/value</subproject>
+  </subprojects>
+
+  <profiles>
+    <!--
+      Release profile: turns an ordinary build into a publishable one. Activated only at release time
+      (`mvn -Prelease …`), so day-to-day and CI verify builds are untouched. The plugins here are inherited
+      by every module in the reactor; on `pom` modules (root, parents) the source/javadoc steps no-op and gpg
+      just signs the .pom. (Bytecode already targets Java 25 for every build — see maven.compiler.release in
+      parent_java — so the release needs no compiler override.)
+
+      The actual upload (central-publishing) only fires on the `deploy` phase.
+    -->
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <configuration>
+              <!-- value uses FFM / JPMS; keep a javadoc warning from blocking the release. The jar still
+                   ships, which is what Maven Central requires. -->
+              <failOnError>false</failOnError>
+            </configuration>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <configuration>
+              <!-- Non-interactive signing: read the passphrase from MAVEN_GPG_PASSPHRASE and feed it to gpg
+                   via a loopback pinentry so it works headless in CI. -->
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+            </configuration>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <!-- Upload the bundle but stop before going live, so releases can be reviewed in the
+                   Central Portal and published by hand. Flip to true once the path is trusted. -->
+              <autoPublish>false</autoPublish>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+      </plugin>
+    </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.6.3</version>
+          <executions>
+            <execution>
+              <id>enforce-versions</id>
+              <goals>
+                <goal>enforce</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <requireMavenVersion>
+                    <version>4.0.0-rc-5</version>
+                  </requireMavenVersion>
+                  <requireJavaVersion>
+                    <version>26</version>
+                  </requireJavaVersion>
+                  <requirePluginVersions>
+                    <banLatest>true</banLatest>
+                    <banRelease>true</banRelease>
+                    <banSnapshots>true</banSnapshots>
+                    <phases>clean,deploy,site</phases>
+                  </requirePluginVersions>
+                </rules>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>versions-maven-plugin</artifactId>
+          <version>2.21.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>4.0.0-beta-2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>4.0.0-beta-2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>4.0.0-M16</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>4.0.0-beta-2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.11.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.5.6</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>3.5.6</version>
+        </plugin>
+        <!-- Pinned to the latest stable 3.x line: the 4.x beta has known
+             ConcurrentModificationException bugs under -T (parallel reactor)
+             and Quarkus dev mode forks compilation in a way the 4.x beta
+             rejects. Bump to 4.x once a non-beta release is published. -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.15.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.5.0</version>
+          <configuration>
+            <skipIfEmpty>true</skipIfEmpty>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.5.0</version>
+        </plugin>
+        <!-- Release-only plugins (used by the `release` profile above). Pinned here so the
+             enforcer's requirePluginVersions is satisfied at the deploy phase. -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>3.3.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.12.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-gpg-plugin</artifactId>
+          <version>3.2.8</version>
+        </plugin>
+        <plugin>
+          <groupId>org.sonatype.central</groupId>
+          <artifactId>central-publishing-maven-plugin</artifactId>
+          <version>0.11.0</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+</project>

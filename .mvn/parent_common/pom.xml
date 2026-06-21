@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.1.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd"
+>
+
+  <parent>
+    <relativePath>../..</relativePath>
+  </parent>
+
+  <groupId>dev.zems.mvn</groupId>
+  <artifactId>parent_common</artifactId>
+  <packaging>pom</packaging>
+
+  <name>ZEMS (mvn) | Common Parent Module and Dependencies</name>
+  <description>Shared properties and root-directory paths inherited by all ZEMS Maven modules.</description>
+
+  <properties>
+    <ops.dir>${project.rootDirectory}/80_ops</ops.dir>
+    <ops.var.dir>${ops.dir}/var</ops.var.dir>
+    <tools.dir>${project.rootDirectory}/.nix/tools</tools.dir>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+  </properties>
+
+</project>

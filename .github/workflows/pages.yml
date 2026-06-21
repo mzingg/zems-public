@@ -1,0 +1,44 @@
+name: Deploy GitHub Pages
+
+# Serves the project website (zems.dev) from this public repo. The site content is authored in the upstream monorepo
+# under 99_doc/site and lands here via promote; this workflow deploys it to GitHub Pages.
+on:
+  push:
+    branches: ['main']
+    paths:
+      - '99_doc/site/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# Allow the GITHUB_TOKEN to deploy to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One concurrent deployment; do not cancel an in-progress one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload static site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 99_doc/site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
