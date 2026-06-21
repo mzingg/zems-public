@@ -73,7 +73,7 @@
     release/<version> git tag.
   -->
   <properties>
-    <revision>0.0.2</revision>
+    <revision>0.0.3</revision>
   </properties>
 
   <subprojects>
@@ -149,16 +149,50 @@
               </execution>
             </executions>
           </plugin>
+          <!--
+            On Maven 4.0.0-rc-5 the central-publishing extension neither auto-binds its `publish` goal to deploy nor
+            reliably suppresses the default maven-deploy-plugin (which fails — there is no distributionManagement). So
+            wire it explicitly: unbind the default-deploy execution (phase=none) and bind central-publishing:publish to
+            deploy ourselves. extensions=true still loads the artifact collector. The plugin uploads one aggregated
+            bundle for the reactor.
+          -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-deploy-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>default-deploy</id>
+                <phase>none</phase>
+              </execution>
+            </executions>
+          </plugin>
           <plugin>
             <groupId>org.sonatype.central</groupId>
             <artifactId>central-publishing-maven-plugin</artifactId>
             <extensions>true</extensions>
             <configuration>
               <publishingServerId>central</publishingServerId>
-              <!-- Upload the bundle but stop before going live, so releases can be reviewed in the
-                   Central Portal and published by hand. Flip to true once the path is trusted. -->
-              <autoPublish>false</autoPublish>
+              <!--
+                Hands-off publishing: after the bundle uploads and PASSES validation it is published to Maven Central
+                with no manual step. waitUntil=published makes the release job block until publishing completes, so a
+                green CI run means the version is live (waitMaxTime is 1800s/30min, the plugin minimum — a slower-than-
+                that Central run would time the job out even though publishing continues). Maven Central is immutable:
+                a published version cannot be unpublished or overwritten. Set autoPublish=false to go back to a manual
+                "Publish" review in the Portal.
+              -->
+              <autoPublish>true</autoPublish>
+              <waitUntil>published</waitUntil>
+              <deploymentName>dev.zems.lib:value ${revision}</deploymentName>
             </configuration>
+            <executions>
+              <execution>
+                <id>central-publish</id>
+                <phase>deploy</phase>
+                <goals>
+                  <goal>publish</goal>
+                </goals>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
