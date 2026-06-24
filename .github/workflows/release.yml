@@ -62,11 +62,13 @@ jobs:
       - name: Deploy to GitHub Packages
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-          # Both halves of the GitHub Packages Basic auth are set explicitly so they are guaranteed to reach Maven
-          # inside the `nix develop` subshell: GITHUB_ACTOR is the username, GITHUB_TOKEN (packages:write on this repo)
-          # the password. They feed the `github` server in release-settings.xml via ${env.GITHUB_ACTOR}/${env.GITHUB_TOKEN}.
+          # GitHub Packages Basic auth: GITHUB_ACTOR is the username, the token below the password — feeding the
+          # `github` server in release-settings.xml via ${env.GITHUB_ACTOR}/${env.GITHUB_TOKEN}.
+          # NOT the automatic GITHUB_TOKEN: even with packages:write it is refused (401) when CREATING a brand-new
+          # package (first publish of dev.zems.lib:value). A classic PAT with write:packages is required; it is stored
+          # as the PACKAGES_TOKEN secret and fed through the GITHUB_TOKEN env so the settings file needs no change.
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
         # Sequential (no -T): gpg-agent does not handle parallel signing reliably.
         run: |
           echo "Releasing dev.zems.lib:value:${GITHUB_REF_NAME#release/} to GitHub Packages"
