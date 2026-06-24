@@ -63,11 +63,13 @@ jobs:
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           # GitHub Packages Basic auth: GITHUB_ACTOR is the username, GITHUB_TOKEN the password — feeding the `github`
-          # server in release-settings.xml via ${env.GITHUB_ACTOR}/${env.GITHUB_TOKEN}. The automatic GITHUB_TOKEN with
-          # packages:write (granted by the permissions block above) is enough; the earlier 401s were never about this
-          # token but about the resolver transport (see the run step), which previously never put it on the wire at all.
+          # server in release-settings.xml via ${env.GITHUB_ACTOR}/${env.GITHUB_TOKEN}. Two things are BOTH required: a
+          # preemptive transport (see the run step) AND a classic PAT here. With the transport fixed, the automatic
+          # GITHUB_TOKEN is now actually sent but Packages still rejects it with 401 (release 0.0.8) — only a classic PAT
+          # (scopes write:packages + repo, curl-proven to upload) is accepted. The PAT is the PACKAGES_TOKEN secret, fed
+          # through GITHUB_TOKEN so release-settings.xml needs no change.
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
         # Sequential (no -T): gpg-agent does not handle parallel signing reliably.
         run: |
           echo "Releasing dev.zems.lib:value:${GITHUB_REF_NAME#release/} to GitHub Packages"
