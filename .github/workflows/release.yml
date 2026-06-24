@@ -62,21 +62,22 @@ jobs:
       - name: Deploy to GitHub Packages
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-          # GitHub Packages Basic auth: GITHUB_ACTOR is the username, the token below the password — feeding the
-          # `github` server in release-settings.xml via ${env.GITHUB_ACTOR}/${env.GITHUB_TOKEN}.
-          # NOT the automatic GITHUB_TOKEN: even with packages:write it is refused (401) when CREATING a brand-new
-          # package (first publish of dev.zems.lib:value). A classic PAT with write:packages is required; it is stored
-          # as the PACKAGES_TOKEN secret and fed through the GITHUB_TOKEN env so the settings file needs no change.
+          # GitHub Packages Basic auth: GITHUB_ACTOR is the username, GITHUB_TOKEN the password — feeding the `github`
+          # server in release-settings.xml via ${env.GITHUB_ACTOR}/${env.GITHUB_TOKEN}. The automatic GITHUB_TOKEN with
+          # packages:write (granted by the permissions block above) is enough; the earlier 401s were never about this
+          # token but about the resolver transport (see the run step), which previously never put it on the wire at all.
           GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Sequential (no -T): gpg-agent does not handle parallel signing reliably.
         run: |
           echo "Releasing dev.zems.lib:value:${GITHUB_REF_NAME#release/} to GitHub Packages"
-          # Masked probe: confirms both credentials survive into the nix subshell (prints `present`, never the value).
-          # Temporary — drop once a release goes green.
-          nix develop .#release --command bash -c '
-            echo "github-server creds in nix shell — actor:${GITHUB_ACTOR:+present} token:${GITHUB_TOKEN:+present}"
-            mvn -B -Prelease,releaseGate \
+          # -Dmaven.resolver.transport=apache is REQUIRED. Maven 4's default JDK HttpClient transport authenticates
+          # only reactively (it waits for a WWW-Authenticate header on the 401), but GitHub Packages returns 401 with
+          # no such header — so the JDK transport never sends the credentials and the deploy fails with
+          # "WWW-Authenticate header missing for response code 401". The Apache transport sends Basic auth preemptively
+          # on PUT, which is what GitHub Packages needs. (Verified on rc-5; curl, which is preemptive, also works.)
+          nix develop .#release --command \
+            mvn -B -Prelease,releaseGate -Dmaven.resolver.transport=apache \
               -s .mvn/release-settings.xml \
               -pl 10_lib/value -am \
-              deploy'
+              deploy
