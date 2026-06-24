@@ -62,14 +62,19 @@ jobs:
       - name: Deploy to GitHub Packages
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-          # GITHUB_ACTOR is provided automatically; GITHUB_TOKEN must be passed explicitly. Together they authenticate
-          # to GitHub Packages via the `github` server in release-settings.xml.
+          # Both halves of the GitHub Packages Basic auth are set explicitly so they are guaranteed to reach Maven
+          # inside the `nix develop` subshell: GITHUB_ACTOR is the username, GITHUB_TOKEN (packages:write on this repo)
+          # the password. They feed the `github` server in release-settings.xml via ${env.GITHUB_ACTOR}/${env.GITHUB_TOKEN}.
+          GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Sequential (no -T): gpg-agent does not handle parallel signing reliably.
         run: |
           echo "Releasing dev.zems.lib:value:${GITHUB_REF_NAME#release/} to GitHub Packages"
-          nix develop .#release --command \
+          # Masked probe: confirms both credentials survive into the nix subshell (prints `present`, never the value).
+          # Temporary — drop once a release goes green.
+          nix develop .#release --command bash -c '
+            echo "github-server creds in nix shell — actor:${GITHUB_ACTOR:+present} token:${GITHUB_TOKEN:+present}"
             mvn -B -Prelease,releaseGate \
               -s .mvn/release-settings.xml \
               -pl 10_lib/value -am \
-              deploy
+              deploy'

@@ -88,7 +88,7 @@
     release/<version> git tag.
   -->
   <properties>
-    <revision>0.0.4</revision>
+    <revision>0.0.5</revision>
   </properties>
 
   <subprojects>
@@ -201,7 +201,7 @@
                     <version>4.0.0-rc-5</version>
                   </requireMavenVersion>
                   <requireJavaVersion>
-                    <version>26</version>
+                    <version>25</version>
                   </requireJavaVersion>
                   <requirePluginVersions>
                     <banLatest>true</banLatest>

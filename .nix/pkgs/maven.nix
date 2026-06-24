@@ -2,7 +2,7 @@
   stdenv,
   fetchurl,
   makeWrapper,
-  jdk26,
+  jdk25,
   lib,
 }:
 
@@ -23,7 +23,7 @@ stdenv.mkDerivation rec {
 
     for cmd in mvn mvnDebug mvnyjp; do
       wrapProgram $out/bin/$cmd \
-        --set JAVA_HOME "${jdk26}" \
+        --set JAVA_HOME "${jdk25}" \
         --set M2_HOME "$out"
     done
   '';
