@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.zems.mvn</groupId>
+    <artifactId>parent_nodejs</artifactId>
+    <version>${revision}</version>
+    <relativePath>../../.mvn/parent_nodejs</relativePath>
+  </parent>
+
+  <groupId>dev.zems.frontend-package</groupId>
+  <artifactId>site_zems_public</artifactId>
+  <packaging>pom</packaging>
+
+  <name>ZEMS (uix) | Public Site (zems.dev)</name>
+
+  <properties>
+    <!-- Marks this module for the public mirror (zems-public). The promote tooling in 80_ops/promote copies every
+         module that sets this to true (plus its build closure). Default is false, declared in the root POM. -->
+    <zems.public>true</zems.public>
+  </properties>
+
+</project>

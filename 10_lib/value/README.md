@@ -15,7 +15,7 @@ See [CLAUDE.md](CLAUDE.md) for the full design and rationale.
 <dependency>
   <groupId>dev.zems.lib</groupId>
   <artifactId>value</artifactId>
-  <version>0.0.1</version>
+  <version>0.0.10</version>
 </dependency>
 ```
 

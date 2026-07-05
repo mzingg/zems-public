@@ -1,0 +1,41 @@
+{
+  "name": "site_zems_public",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "PORT=40201 next dev --turbopack",
+    "build": "next build",
+    "start": "PORT=40201 node scripts/serve-site.mjs",
+    "lint": "eslint .",
+    "test": "jest",
+    "verify:smoke": "playwright test --grep '@Smoke'"
+  },
+  "dependencies": {
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.60.0",
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@types/jest": "30.0.0",
+    "@types/node": "25.9.3",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "baseline-browser-mapping": "2.10.38",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.9",
+    "jest": "30.4.2",
+    "jest-environment-jsdom": "30.4.1",
+    "ts-node": "10.9.2",
+    "typescript": "6.0.3"
+  },
+  "overrides": {
+    "postcss": "8.5.15",
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "4.2.0"
+    }
+  }
+}

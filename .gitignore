@@ -1,6 +1,10 @@
 ### Build Output Directories
 target
 node_modules
+# next.js intermediate build dir; only appears when output:'export' redirects the export into distDir
+.next
+# SWC transform cache (next.js / next/jest)
+.swc
 
 ### flatten-maven-plugin output (resolved ${revision}); removed by `mvn clean`
 **/.flattened-pom.xml

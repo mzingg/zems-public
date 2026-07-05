@@ -42,5 +42,5 @@ Apache License 2.0 — see [LICENSE](LICENSE).
 
 ## More
 
-- Project site — <https://zems.dev>
+- Project site — <https://zems.dev> (source: [50_frontend/site_zems_public](50_frontend/site_zems_public/README.md))
 - Changelog — [GitHub Releases](https://github.com/mzingg/zems-public/releases)

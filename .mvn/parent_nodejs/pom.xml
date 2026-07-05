@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>dev.zems.mvn</groupId>
+    <artifactId>parent_common</artifactId>
+    <version>${revision}</version>
+    <relativePath>../parent_common</relativePath>
+  </parent>
+
+  <artifactId>parent_nodejs</artifactId>
+  <packaging>pom</packaging>
+
+  <name>ZEMS (mvn) | NodeJs Parent Module</name>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>com.github.eirslett</groupId>
+          <artifactId>frontend-maven-plugin</artifactId>
+          <version>2.0.0</version>
+          <executions>
+            <!-- Dependencies must exist before any other npm step. -->
+            <execution>
+              <id>npm_install</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <phase>initialize</phase>
+              <configuration>
+                <arguments>install</arguments>
+              </configuration>
+            </execution>
+            <!-- Unit tests run before packaging, like Java surefire. -->
+            <execution>
+              <id>npm_test</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <phase>test</phase>
+              <configuration>
+                <arguments>run test</arguments>
+              </configuration>
+            </execution>
+            <!-- Production build is the package output. -->
+            <execution>
+              <id>npm_build</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <phase>prepare-package</phase>
+              <configuration>
+                <arguments>run build</arguments>
+              </configuration>
+            </execution>
+            <!-- E2E / smoke tests need the built artifact. -->
+            <execution>
+              <id>npm_e2e_run</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <phase>integration-test</phase>
+              <configuration>
+                <arguments>run verify:smoke</arguments>
+              </configuration>
+            </execution>
+            <!-- Lint is gated behind the commitGate profile (see below). -->
+            <execution>
+              <id>npm_lint</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <phase>none</phase>
+              <configuration>
+                <arguments>run lint</arguments>
+              </configuration>
+            </execution>
+            <!-- Dependency vulnerability audit, gated behind commitGate.
+                 Fails the build on moderate-or-higher advisories. -->
+            <execution>
+              <id>npm_audit</id>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <phase>none</phase>
+              <configuration>
+                <arguments>audit --audit-level=moderate</arguments>
+              </configuration>
+            </execution>
+          </executions>
+          <configuration>
+            <installDirectory>${tools.dir}</installDirectory>
+            <environmentVariables>
+              <CI>true</CI>
+              <NEXT_TELEMETRY_DISABLED>1</NEXT_TELEMETRY_DISABLED>
+            </environmentVariables>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>active-when-package-json</id>
+      <activation>
+        <file>
+          <!-- ${basedir} (not ${project.basedir}) is the token Maven 3's file-activation
+               interpolator documents. -->
+          <exists>${basedir}/package.json</exists>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.eirslett</groupId>
+            <artifactId>frontend-maven-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <!-- Pre-commit gate: enables npm run lint and npm audit. Mirrors the
+         commitGate profile in parent_java. Activate explicitly:
+           mvn -PcommitGate verify
+         The override sits in pluginManagement so it doesn't add the
+         plugin to modules without a package.json. -->
+    <profile>
+      <id>commitGate</id>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>com.github.eirslett</groupId>
+              <artifactId>frontend-maven-plugin</artifactId>
+              <executions>
+                <execution>
+                  <id>npm_lint</id>
+                  <phase>process-sources</phase>
+                </execution>
+                <execution>
+                  <id>npm_audit</id>
+                  <phase>process-sources</phase>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+    <!-- Release gate: identical to commitGate today, kept distinct so the
+         two can diverge (e.g. stricter audit level). Activate explicitly:
+           mvn -PreleaseGate verify -->
+    <profile>
+      <id>releaseGate</id>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>com.github.eirslett</groupId>
+              <artifactId>frontend-maven-plugin</artifactId>
+              <executions>
+                <execution>
+                  <id>npm_lint</id>
+                  <phase>process-sources</phase>
+                </execution>
+                <execution>
+                  <id>npm_audit</id>
+                  <phase>process-sources</phase>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+    <!-- Promote gate: same npm lint + audit, run by 80_ops/promote/promote.sh before a module ships to the
+         public mirror. Mirrors the promoteGate profile in parent_java. -->
+    <profile>
+      <id>promoteGate</id>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>com.github.eirslett</groupId>
+              <artifactId>frontend-maven-plugin</artifactId>
+              <executions>
+                <execution>
+                  <id>npm_lint</id>
+                  <phase>process-sources</phase>
+                </execution>
+                <execution>
+                  <id>npm_audit</id>
+                  <phase>process-sources</phase>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+  </profiles>
+
+</project>

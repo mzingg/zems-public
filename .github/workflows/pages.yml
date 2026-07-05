@@ -1,12 +1,14 @@
 name: Deploy GitHub Pages
 
-# Serves the project website (zems.dev) from this public repo. The site content is authored in the upstream monorepo
-# under 99_doc/site and lands here via promote; this workflow deploys it to GitHub Pages.
+# Serves the project website (zems.dev) from this public repo. The site is a next.js static export authored in the
+# upstream monorepo under 50_frontend/site_zems_public and lands here as source via promote; this workflow builds
+# the export and deploys it to GitHub Pages. Every promote stamps the release version into the site's version
+# content file, so every release redeploys the site with the version it shipped with.
 on:
   push:
     branches: ['main']
     paths:
-      - '99_doc/site/**'
+      - '50_frontend/site_zems_public/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -31,13 +33,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          # Keep in step with the monorepo dev shell (pkgs.nodejs_24 in flake.nix).
+          node-version: 24
+          cache: npm
+          cache-dependency-path: 50_frontend/site_zems_public/package-lock.json
+
+      - name: Build the static export
+        working-directory: 50_frontend/site_zems_public
+        run: |
+          npm ci
+          npm run build
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 99_doc/site
+          path: 50_frontend/site_zems_public/target/site
 
       - name: Deploy to GitHub Pages
         id: deployment

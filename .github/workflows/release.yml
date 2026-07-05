@@ -4,8 +4,9 @@ name: Release to Maven Central
 # also stamps the same version into the root POM's <revision>, so this build needs no -Drevision — it reads the
 # committed version. A guard below fails the run if the tag and the committed <revision> disagree.
 #
-# Publishes the value library (and its parent POM chain) to Maven Central via the central-publishing plugin in the
-# release profile. The deployed .pom files are the flattened POMs (real version resolved by flatten-maven-plugin).
+# Publishes the public module set (currently the value library plus its parent POM chain) to Maven Central as one
+# bundle via the central-publishing plugin in the release profile — all modules share the release version. The
+# deployed .pom files are the flattened POMs (real version resolved by flatten-maven-plugin).
 # autoPublish=true + waitUntil=published: a green run means the version is LIVE on Central — and Central is immutable,
 # a published version can never be unpublished or overwritten.
 
@@ -69,7 +70,7 @@ jobs:
         # aggregates the bundle at the reactor end. The -T1C from .mvn/maven.config is overridden back to
         # a single thread here.
         run: |
-          echo "Releasing dev.zems.lib:value:${GITHUB_REF_NAME#release/} to Maven Central"
+          echo "Releasing dev.zems ${GITHUB_REF_NAME#release/} to Maven Central"
           nix develop .#release --command \
             mvn -B -T1 -Prelease,releaseGate \
               -s .mvn/release-settings.xml \
