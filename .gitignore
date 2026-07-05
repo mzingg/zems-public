@@ -2,6 +2,9 @@
 target
 node_modules
 
+### flatten-maven-plugin output (resolved ${revision}); removed by `mvn clean`
+**/.flattened-pom.xml
+
 ### IntelliJ IDEA ###
 .idea
 *.iws

@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <project
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns="http://maven.apache.org/POM/4.1.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
 >
 
+  <modelVersion>4.0.0</modelVersion>
+
   <parent>
+    <groupId>dev.zems</groupId>
+    <artifactId>root</artifactId>
+    <version>${revision}</version>
     <relativePath>../..</relativePath>
   </parent>
 
@@ -17,9 +22,12 @@
   <description>Shared properties and root-directory paths inherited by all ZEMS Maven modules.</description>
 
   <properties>
-    <ops.dir>${project.rootDirectory}/80_ops</ops.dir>
+    <!-- ${maven.multiModuleProjectDirectory} is set by the mvn launcher (it scans upward for the
+         .mvn/ directory at the repo root) and is the Maven 3 stand-in for Maven 4's
+         ${project.rootDirectory}. -->
+    <ops.dir>${maven.multiModuleProjectDirectory}/80_ops</ops.dir>
     <ops.var.dir>${ops.dir}/var</ops.var.dir>
-    <tools.dir>${project.rootDirectory}/.nix/tools</tools.dir>
+    <tools.dir>${maven.multiModuleProjectDirectory}/.nix/tools</tools.dir>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>

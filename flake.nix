@@ -31,7 +31,9 @@
         # Official nixpkgs OpenJDK 25 — the supported floor, and now also the build JVM
         # (build equals ship; see the monorepo CLAUDE.md "Java Toolchain").
         jdk25 = pkgs.openjdk25;
-        maven4 = pkgs.callPackage ./.nix/pkgs/maven.nix { inherit jdk25; };
+        # nixpkgs Maven (3.9.x line), run on the pinned JDK. The promoted .nix/pkgs/maven.nix
+        # (Maven 4) is unused here; it rides along from the monorepo allow-list.
+        maven3 = pkgs.maven.override { jdk_headless = jdk25; };
         # Pinned Prettier (+ prettier-plugin-java) — the single formatter treefmt drives. Exposed here so the
         # pre-commit hook can print its version banner; treefmt itself references it by store path internally.
         prettier = pkgs.callPackage ./.nix/pkgs/prettier { };
@@ -51,7 +53,7 @@
           inherit (perSystem.${system})
             pkgs
             jdk25
-            maven4
+            maven3
             prettier
             treefmt
             ;
@@ -60,7 +62,7 @@
           # when the calling shell didn't enter `nix develop`. The wrapper exports PATH from pinned Nix paths and
           # execs the real hook script.
           preCommitHook = pkgs.writeShellScript "pre-commit-hook" ''
-            export PATH="${treefmt}/bin:${prettier}/bin:${maven4}/bin:${jdk25}/bin:$PATH"
+            export PATH="${treefmt}/bin:${prettier}/bin:${maven3}/bin:${jdk25}/bin:$PATH"
             export JAVA_HOME="${jdk25}"
             exec ${pkgs.bash}/bin/bash ${./.nix/apps/pre-commit-hook.sh} "$@"
           '';
@@ -69,7 +71,7 @@
           defaultShell = pkgs.mkShell {
             buildInputs = [
               jdk25
-              maven4
+              maven3
               treefmt
             ];
 
@@ -89,7 +91,7 @@
 
               # Stable symlinks for IDE integration.
               mkdir -p "$PROJECT_ROOT/.nix/tools"
-              ln -sfn ${maven4} "$PROJECT_ROOT/.nix/tools/maven"
+              ln -sfn ${maven3} "$PROJECT_ROOT/.nix/tools/maven"
               ln -sfn ${jdk25} "$PROJECT_ROOT/.nix/tools/jdk"
 
               # Install the formatting pre-commit hook (Nix-wrapped so IDE-driven commits find treefmt / mvn / java

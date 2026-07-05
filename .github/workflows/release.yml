@@ -1,13 +1,13 @@
-name: Release to GitHub Packages
+name: Release to Maven Central
 
 # Cuts a release when a `release/<version>` tag is pushed (e.g. release/0.0.1). The promote tooling that pushes the tag
 # also stamps the same version into the root POM's <revision>, so this build needs no -Drevision — it reads the
 # committed version. A guard below fails the run if the tag and the committed <revision> disagree.
 #
-# INTERIM target: GitHub Packages (https://maven.pkg.github.com/mzingg/zems-public), via the standard
-# maven-deploy-plugin (the distributionManagement repo in the root POM). Maven Central is deferred until Maven 4 rc-6 —
-# on rc-5 the central-publishing plugin uploads the inference-only build POM and Central rejects it. NOTE: consuming
-# from GitHub Packages requires a GitHub token even for public packages.
+# Publishes the value library (and its parent POM chain) to Maven Central via the central-publishing plugin in the
+# release profile. The deployed .pom files are the flattened POMs (real version resolved by flatten-maven-plugin).
+# autoPublish=true + waitUntil=published: a green run means the version is LIVE on Central — and Central is immutable,
+# a published version can never be unpublished or overwritten.
 
 on:
   push:
@@ -16,7 +16,6 @@ on:
 
 permissions:
   contents: read
-  packages: write # deploy to this repo's GitHub Packages with the automatic GITHUB_TOKEN
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -59,27 +58,20 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: nix develop .#release --command bash -c 'echo "$GPG_PRIVATE_KEY" | gpg --batch --import'
 
-      - name: Deploy to GitHub Packages
+      - name: Deploy to Maven Central
         env:
+          # Central Portal token (user token from https://central.sonatype.com) — read by the `central`
+          # server entry in release-settings.xml via ${env.CENTRAL_TOKEN_USERNAME}/${env.CENTRAL_TOKEN_PASSWORD}.
+          CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-          # GitHub Packages Basic auth: GITHUB_ACTOR is the username, GITHUB_TOKEN the password — feeding the `github`
-          # server in release-settings.xml via ${env.GITHUB_ACTOR}/${env.GITHUB_TOKEN}. Two things are BOTH required: a
-          # preemptive transport (see the run step) AND a classic PAT here. With the transport fixed, the automatic
-          # GITHUB_TOKEN is now actually sent but Packages still rejects it with 401 (release 0.0.8) — only a classic PAT
-          # (scopes write:packages + repo, curl-proven to upload) is accepted. The PAT is the PACKAGES_TOKEN secret, fed
-          # through GITHUB_TOKEN so release-settings.xml needs no change.
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
-        # Sequential (no -T): gpg-agent does not handle parallel signing reliably.
+        # Sequential (no -T): gpg-agent does not handle parallel signing reliably, and central-publishing
+        # aggregates the bundle at the reactor end. The -T1C from .mvn/maven.config is overridden back to
+        # a single thread here.
         run: |
-          echo "Releasing dev.zems.lib:value:${GITHUB_REF_NAME#release/} to GitHub Packages"
-          # -Dmaven.resolver.transport=apache is REQUIRED. Maven 4's default JDK HttpClient transport authenticates
-          # only reactively (it waits for a WWW-Authenticate header on the 401), but GitHub Packages returns 401 with
-          # no such header — so the JDK transport never sends the credentials and the deploy fails with
-          # "WWW-Authenticate header missing for response code 401". The Apache transport sends Basic auth preemptively
-          # on PUT, which is what GitHub Packages needs. (Verified on rc-5; curl, which is preemptive, also works.)
+          echo "Releasing dev.zems.lib:value:${GITHUB_REF_NAME#release/} to Maven Central"
           nix develop .#release --command \
-            mvn -B -Prelease,releaseGate -Dmaven.resolver.transport=apache \
+            mvn -B -T1 -Prelease,releaseGate \
               -s .mvn/release-settings.xml \
               -pl 10_lib/value -am \
               deploy

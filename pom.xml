@@ -2,7 +2,7 @@
 <!--
   PUBLIC root POM for the zems-public mirror. This is an overlay: 80_ops/promote/promote.sh copies it over the
   assembled tree as the public repo's root pom.xml. It mirrors the monorepo root pom.xml but:
-    - trims <subprojects> to only the public modules + their parent chain,
+    - trims <modules> to only the public modules + their parent chain,
     - drops the with-baseline-modules profile (no baselines are public),
     - keeps the release profile here (the public repo is the only place that deploys to Maven Central),
     - carries a real <revision> (promote stamps the release version into the placeholder below).
@@ -11,9 +11,11 @@
 -->
 <project
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns="http://maven.apache.org/POM/4.1.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
 >
+
+  <modelVersion>4.0.0</modelVersion>
 
   <groupId>dev.zems</groupId>
   <artifactId>root</artifactId>
@@ -31,10 +33,10 @@
   </organization>
 
   <!--
-    Shared publish metadata. Maven 4's consumer POM keeps the parent reference rather than inlining it, so
-    the parent chain (root, parent_common, parent_java) is published too; Maven Central reads licence, scm,
-    and developers by walking that chain. `name` and `description` are NOT inherited and must sit on every
-    published artifact directly.
+    Shared publish metadata. The flattened POM (resolveCiFriendliesOnly) keeps the parent reference
+    rather than inlining it, so the parent chain (root, parent_common, parent_java) is published too;
+    Maven Central reads licence, scm, and developers by walking that chain. `name` and `description`
+    are NOT inherited and must sit on every published artifact directly.
   -->
   <licenses>
     <license>
@@ -67,19 +69,11 @@
   </scm>
 
   <!--
-    Interim distribution: GitHub Packages on the public repo. Maven Central is deferred until Maven 4 rc-6, because
-    central-publishing 0.11.0 on rc-5 uploads the inference-only build POM as the main artifact and Central rejects it
-    (the resolved consumer POM ships only as a side artifact). Plain maven-deploy-plugin — which GitHub Packages uses —
-    deploys the consumer POM AS the main .pom correctly, so this path works on rc-5. NOTE: consuming from GitHub
-    Packages requires a GitHub token even for public packages. Switch back to central-publishing for Central on rc-6.
+    Distribution: Maven Central via the central-publishing plugin in the release profile — no
+    distributionManagement needed (the plugin uploads to the Central Portal). The interim GitHub
+    Packages path (a distributionManagement block + plain maven-deploy-plugin) was retired when the
+    Maven 3 migration unblocked Central; see the git history of this file to restore it.
   -->
-  <distributionManagement>
-    <repository>
-      <id>github</id>
-      <name>GitHub Packages (zems-public)</name>
-      <url>https://maven.pkg.github.com/mzingg/zems-public</url>
-    </repository>
-  </distributionManagement>
 
   <!--
     The released version. Unlike the monorepo (which keeps the ${revision} dev sentinel on main), the public
@@ -88,15 +82,20 @@
     release/<version> git tag.
   -->
   <properties>
-    <revision>0.0.9</revision>
+    <revision>0.0.10</revision>
+    <!-- Reproducible builds: fixed timestamp for all archive entries. REQUIRED on Maven 3 — without it,
+         maven-archiver falls back to the SOURCE_DATE_EPOCH env var, which the nix dev shell sets to
+         1980-01-01T00:00:00Z, two seconds below the JDK jar tool's minimum (zip timestamps start at
+         1980-01-01T00:00:02Z) — and every modular JAR build fails. Keep in step with the monorepo root POM. -->
+    <project.build.outputTimestamp>2026-07-05T00:00:00Z</project.build.outputTimestamp>
   </properties>
 
-  <subprojects>
-    <subproject>.mvn/parent_common</subproject>
-    <subproject>.mvn/parent_java</subproject>
-    <subproject>10_lib/common</subproject>
-    <subproject>10_lib/value</subproject>
-  </subprojects>
+  <modules>
+    <module>.mvn/parent_common</module>
+    <module>.mvn/parent_java</module>
+    <module>10_lib/common</module>
+    <module>10_lib/value</module>
+  </modules>
 
   <profiles>
     <!--
@@ -165,12 +164,60 @@
             </executions>
           </plugin>
           <!--
-            Deploy is the default maven-deploy-plugin (no extra plugin needed): it pushes to the distributionManagement
-            repository above (GitHub Packages) and, unlike central-publishing 0.11.0 on Maven 4 rc-5, deploys the
-            resolved consumer POM as the main .pom. Maven Central via central-publishing is deferred until rc-6 — to
-            switch back, drop distributionManagement and restore the central-publishing plugin (extensions=true,
-            publishingServerId=central, autoPublish=true, waitUntil=published) bound to the deploy phase.
+            Deploy is central-publishing: it collects the reactor's artifacts (with the flattened POMs — real version
+            resolved) into one bundle and uploads it to the Central Portal. The wiring is explicit rather than relying
+            on the extension's auto-swap of the deploy phase: unbind the default maven-deploy-plugin execution
+            (phase=none — there is no distributionManagement to deploy to anyway) and bind central-publishing:publish
+            to deploy ourselves. Deterministic regardless of how extension auto-binding treats profile-declared
+            plugins, and it is the wiring the 2026-06 Portal upload already proved.
           -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-deploy-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>default-deploy</id>
+                <phase>none</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <!--
+                Hands-off publishing: after the bundle uploads and PASSES validation it is published to Maven Central
+                with no manual step. waitUntil=published makes the release job block until publishing completes, so a
+                green CI run means the version is live (waitMaxTime is 1800s/30min, the plugin minimum — a slower-than-
+                that Central run would time the job out even though publishing continues). Maven Central is immutable:
+                a published version cannot be unpublished or overwritten. Set autoPublish=false to go back to a manual
+                "Publish" review in the Portal.
+              -->
+              <autoPublish>true</autoPublish>
+              <waitUntil>published</waitUntil>
+              <deploymentName>dev.zems.lib:value ${revision}</deploymentName>
+              <!--
+                common rides along in the reactor (value needs its test-jar via -am) but is not published — its main
+                jar is a placeholder and its javadoc jar is skipped, which Portal validation would reject. Excluding
+                it here is the plugin's documented mechanism; common's maven.deploy.skip only covers the plain
+                maven-deploy-plugin path.
+              -->
+              <excludeArtifacts>
+                <artifactId>common</artifactId>
+              </excludeArtifacts>
+            </configuration>
+            <executions>
+              <execution>
+                <id>central-publish</id>
+                <phase>deploy</phase>
+                <goals>
+                  <goal>publish</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
       </build>
     </profile>
@@ -181,6 +228,10 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>flatten-maven-plugin</artifactId>
       </plugin>
     </plugins>
     <pluginManagement>
@@ -198,7 +249,9 @@
               <configuration>
                 <rules>
                   <requireMavenVersion>
-                    <version>4.0.0-rc-5</version>
+                    <!-- Floor 3.9, excludes a Maven 4 final. The real version control is the nix
+                         dev shell (pkgs.maven); this rule only catches a wrong local setup. -->
+                    <version>[3.9,4)</version>
                   </requireMavenVersion>
                   <requireJavaVersion>
                     <version>25</version>
@@ -222,22 +275,56 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-clean-plugin</artifactId>
-          <version>4.0.0-beta-2</version>
+          <version>3.5.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-install-plugin</artifactId>
-          <version>4.0.0-beta-2</version>
+          <version>3.1.4</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-site-plugin</artifactId>
-          <version>4.0.0-M16</version>
+          <version>3.22.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-deploy-plugin</artifactId>
-          <version>4.0.0-beta-2</version>
+          <version>3.1.4</version>
+        </plugin>
+        <!--
+          CI-friendly versions on Maven 3: the reactor resolves ${revision} while building, but
+          install/deploy would otherwise publish the raw POM with the literal `${revision}` string,
+          which breaks any later resolution from a repository. flatten rewrites each module's POM to
+          .flattened-pom.xml (gitignored) with ${revision} resolved — resolveCiFriendliesOnly touches
+          nothing else — and points install/deploy at it. updatePomFile=true is REQUIRED: its default
+          is false for `pom` packaging, and the published parent chain (root, parent_common,
+          parent_java) is exactly that.
+        -->
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>flatten-maven-plugin</artifactId>
+          <version>1.7.3</version>
+          <configuration>
+            <flattenMode>resolveCiFriendliesOnly</flattenMode>
+            <updatePomFile>true</updatePomFile>
+          </configuration>
+          <executions>
+            <execution>
+              <id>flatten</id>
+              <phase>process-resources</phase>
+              <goals>
+                <goal>flatten</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>flatten-clean</id>
+              <phase>clean</phase>
+              <goals>
+                <goal>clean</goal>
+              </goals>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <project
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns="http://maven.apache.org/POM/4.1.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 https://maven.apache.org/xsd/maven-4.1.0.xsd"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
 >
 
+  <modelVersion>4.0.0</modelVersion>
+
   <parent>
+    <groupId>dev.zems.mvn</groupId>
+    <artifactId>parent_common</artifactId>
+    <version>${revision}</version>
     <relativePath>../parent_common</relativePath>
   </parent>
 
@@ -17,8 +22,9 @@
 
   <properties>
     <maven.compiler.release>25</maven.compiler.release>
-    <zems.checkstyle.config>${project.rootDirectory}/.mvn/parent_java/checkstyle.xml</zems.checkstyle.config>
-    <zems.pmd.config>${project.rootDirectory}/.mvn/parent_java/pmd-ruleset.xml</zems.pmd.config>
+    <zems.checkstyle.config
+    >${maven.multiModuleProjectDirectory}/.mvn/parent_java/checkstyle.xml</zems.checkstyle.config>
+    <zems.pmd.config>${maven.multiModuleProjectDirectory}/.mvn/parent_java/pmd-ruleset.xml</zems.pmd.config>
     <junit.version>6.1.0</junit.version>
     <mockito.version>5.23.0</mockito.version>
     <!-- JMH (Java Microbenchmark Harness): only the quality-tier value_benchmark module uses it. -->
@@ -31,6 +37,54 @@
 
   <dependencyManagement>
     <dependencies>
+      <!--
+        Internal reactor modules: versions are managed once here so module POMs declare
+        groupId + artifactId only (Maven 3 needs a version on every dependency; the Maven 4
+        reactor used to infer it). depMgmt matches on type too, so the test-jar rows are
+        separate entries. ${revision} is resolved in the published POM by flatten.
+      -->
+      <dependency>
+        <groupId>dev.zems.lib</groupId>
+        <artifactId>common</artifactId>
+        <version>${revision}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.zems.lib</groupId>
+        <artifactId>common</artifactId>
+        <version>${revision}</version>
+        <type>test-jar</type>
+      </dependency>
+      <dependency>
+        <groupId>dev.zems.lib</groupId>
+        <artifactId>value</artifactId>
+        <version>${revision}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.zems.lib</groupId>
+        <artifactId>value</artifactId>
+        <version>${revision}</version>
+        <type>test-jar</type>
+      </dependency>
+      <dependency>
+        <groupId>dev.zems.lib</groupId>
+        <artifactId>tree</artifactId>
+        <version>${revision}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.zems.lib</groupId>
+        <artifactId>game_engine</artifactId>
+        <version>${revision}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.zems.lib</groupId>
+        <artifactId>console_ui</artifactId>
+        <version>${revision}</version>
+      </dependency>
+      <dependency>
+        <groupId>dev.zems.lib</groupId>
+        <artifactId>autocracy_core</artifactId>
+        <version>${revision}</version>
+      </dependency>
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
@@ -255,7 +309,8 @@
                  entry must explain WHY the dependency is not actually
                  affected; see file header. -->
             <suppressionFiles>
-              <suppressionFile>${project.rootDirectory}/.mvn/parent_java/owasp-suppressions.xml</suppressionFile>
+              <suppressionFile
+              >${maven.multiModuleProjectDirectory}/.mvn/parent_java/owasp-suppressions.xml</suppressionFile>
             </suppressionFiles>
           </configuration>
           <executions>

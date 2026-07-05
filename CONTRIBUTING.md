@@ -17,7 +17,7 @@ merged into `main` directly. This keeps the published history clean and lets the
 
 ## Build and test
 
-The build uses a pinned toolchain (JDK + Maven 4) provided through Nix:
+The build uses a pinned toolchain (JDK + Maven 3.9) provided through Nix:
 
 ```bash
 nix develop --command mvn -B -PcommitGate verify
@@ -25,7 +25,7 @@ nix develop --command mvn -B -PcommitGate verify
 
 `nix develop` puts the right JDK and Maven on your PATH. The minimum JDK is **Java 25**.
 
-If you do not use Nix, install JDK 25+ and Maven 4 yourself and run `mvn -B -PcommitGate verify`. The same checks
+If you do not use Nix, install JDK 25+ and Maven 3.9+ yourself and run `mvn -B -PcommitGate verify`. The same checks
 (checkstyle, PMD, tests) run in CI on every pull request.
 
 ## Formatting
