@@ -71,6 +71,16 @@
         border-radius: 4px;
         font-size: 0.9em;
       }
+      pre {
+        background: var(--line);
+        padding: 0.9rem 1.1rem;
+        border-radius: 6px;
+        overflow-x: auto;
+      }
+      pre code {
+        background: none;
+        padding: 0;
+      }
       ul {
         padding-left: 1.2rem;
       }
@@ -104,6 +114,21 @@
         JSON marshalling layer, and no runtime dependencies of its own. More modules from the suite will appear here as
         they are released.
       </p>
+
+      <h2>Use it</h2>
+      <p>
+        Released on
+        <a href="https://central.sonatype.com/artifact/dev.zems.lib/value">Maven Central</a> — no extra repository or
+        token needed. Requires JDK 25 or newer.
+      </p>
+      <!-- The version below is a placeholder in the source tree; the release tooling stamps the released
+           version into it when the public tree is assembled, the same way <revision> is stamped in the
+           root POM. -->
+      <pre><code>&lt;dependency&gt;
+  &lt;groupId&gt;dev.zems.lib&lt;/groupId&gt;
+  &lt;artifactId&gt;value&lt;/artifactId&gt;
+  &lt;version&gt;0.0.10&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
 
       <h2>Source</h2>
       <p>
