@@ -3,7 +3,7 @@ package dev.zems.lib.value.builtin;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import dev.zems.lib.value.ErrorValue;
 import dev.zems.lib.value.Value;
 import java.time.Duration;
@@ -24,17 +24,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/**
- * Parameterised contract test that drives 10 structurally identical builtin scalar value types (PeriodValue, YearValue,
- * YearMonthValue, LocalDateValue, LocalDateTimeValue, LocalTimeValue, OffsetDateTimeValue, ZonedDateTimeValue,
- * TimeInstantValue, DurationValue) through one specification of behaviour. Replaces 10 near-clone test files that
- * previously each spelled out the same six concerns: direct construction, null-rejection, string-factory parsing, state
- * predicates, equals/hashCode, toString, and round-trip.
- *
- * <p>
- * Each row in {@link #scalarTypes()} carries the type-specific bindings — sample value, factory references, mutator for
- * "different value" tests, expected error-message stems — and one method below covers each concern across all rows.
- */
 @DisplayName("Builtin scalar value contract")
 @ContractTest
 class BuiltinScalarValueContractTest {
@@ -277,11 +266,6 @@ class BuiltinScalarValueContractTest {
     assertThat(spec.stringFactory().apply(spec.sample().toString())).isEqualTo(original);
   }
 
-  /**
-   * Specification for one scalar value type. {@code wrap} is the typed {@code new XxxValue(sample)} ctor;
-   * {@code stringFactory} is {@code Value::<type>Of(String)}; {@code mutator} produces a different sample value to
-   * exercise inequality.
-   */
   record ScalarSpec<T>(
     String displayName,
     Class<? extends Value<T>> wrapperClass,

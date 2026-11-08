@@ -1,13 +1,12 @@
 package dev.zems.lib.value;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static dev.zems.lib.value.junit.ValueAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.zems.lib.common._test.JourneyTest;
-import dev.zems.lib.value.marshal.Protocol;
-import dev.zems.lib.value.marshal.SerializedThrowable;
-import dev.zems.lib.value.marshal.ValueIo;
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.common.junit.JourneyTest;
+import dev.zems.lib.value.valueio.SerializedThrowable;
+import dev.zems.lib.value.valueio.ValueIo;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -82,14 +81,14 @@ class ValueMarshallingTest {
     @JourneyTest(speakingId = "protocol-v1-framed-binary-scalar-roundtrips", acceptance = "a1")
     void stringRoundTrips() {
       Value<String> v = roundTrip(Value.of("hello"), String.class);
-      assertThat(v.asString()).contains("hello");
+      assertThat(v).hasStringValue("hello");
     }
 
     @Test
     @JourneyTest(speakingId = "protocol-v1-framed-binary-scalar-roundtrips", acceptance = "a2")
     void integerRoundTrips() {
       Value<Integer> v = roundTrip(Value.of(42), Integer.class);
-      assertThat(v.asInteger()).contains(42);
+      assertThat(v).hasIntValue(42);
     }
 
     @Test
@@ -109,7 +108,7 @@ class ValueMarshallingTest {
     @JourneyTest(speakingId = "protocol-v1-type-verification", acceptance = "a1")
     void roundTripsWithVerifiedMode() {
       Value<String> v = roundTrip(Value.of("hello"), String.class, true);
-      assertThat(v.asString()).contains("hello");
+      assertThat(v).hasStringValue("hello");
     }
 
     @Test
@@ -126,9 +125,7 @@ class ValueMarshallingTest {
           .isInstanceOf(IllegalStateException.class)
           .hasMessageContaining("Type mismatch")
           .hasMessageContaining("java.lang.String");
-      } catch (RuntimeException closeError) {
-        // Close-time terminator failure is downstream of the body throw — expected.
-      }
+      } catch (RuntimeException ignored) {}
     }
   }
 }

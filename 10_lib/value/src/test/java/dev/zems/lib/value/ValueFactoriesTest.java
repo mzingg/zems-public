@@ -1,12 +1,10 @@
 package dev.zems.lib.value;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static dev.zems.lib.value.junit.ValueAssertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 
-import dev.zems.lib.common._test.ContractTest;
-import dev.zems.lib.value.BoxedValue;
-import dev.zems.lib.value.NullValue;
+import dev.zems.lib.common.junit.ContractTest;
 import dev.zems.lib.value.builtin.BigDecimalValue;
 import dev.zems.lib.value.builtin.BigIntegerValue;
 import dev.zems.lib.value.builtin.BooleanValue;
@@ -15,6 +13,7 @@ import dev.zems.lib.value.builtin.CharacterValue;
 import dev.zems.lib.value.builtin.CurrencyValue;
 import dev.zems.lib.value.builtin.DoubleValue;
 import dev.zems.lib.value.builtin.DurationValue;
+import dev.zems.lib.value.builtin.EnumValue;
 import dev.zems.lib.value.builtin.FloatValue;
 import dev.zems.lib.value.builtin.InetAddressValue;
 import dev.zems.lib.value.builtin.IntegerValue;
@@ -23,13 +22,16 @@ import dev.zems.lib.value.builtin.LocalDateValue;
 import dev.zems.lib.value.builtin.LocalTimeValue;
 import dev.zems.lib.value.builtin.LocaleValue;
 import dev.zems.lib.value.builtin.LongValue;
+import dev.zems.lib.value.builtin.MeasurableValue;
 import dev.zems.lib.value.builtin.OffsetDateTimeValue;
 import dev.zems.lib.value.builtin.PeriodValue;
 import dev.zems.lib.value.builtin.ShortValue;
 import dev.zems.lib.value.builtin.StringValue;
 import dev.zems.lib.value.builtin.TimeInstantValue;
+import dev.zems.lib.value.builtin.TypeValue;
 import dev.zems.lib.value.builtin.UrlValue;
 import dev.zems.lib.value.builtin.UuidValue;
+import dev.zems.lib.value.builtin.VersionValue;
 import dev.zems.lib.value.builtin.YearMonthValue;
 import dev.zems.lib.value.builtin.YearValue;
 import dev.zems.lib.value.builtin.ZoneIdValue;
@@ -56,17 +58,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/**
- * Contract test for {@link ValueFactories} — the generic {@code Value.of(Object)} dispatch and the 23 typed
- * {@code of(JdkType)} overloads. Each row in {@link #typedFactories()} pins a non-null wrap + a null-input ErrorValue
- * rejection for one factory.
- */
 @ContractTest
 @DisplayName("ValueFactories")
 class ValueFactoriesTest {
@@ -162,8 +160,73 @@ class ValueFactoriesTest {
         InetAddress.ofLiteral("127.0.0.1"),
         InetAddressValue.class,
         "InetAddress must not be null"
+      ),
+      new TypedFactory<>(
+        "of(TypeName)",
+        Value::of,
+        new TypeName("com.example.Person"),
+        TypeValue.class,
+        "TypeName must not be null"
+      ),
+      new TypedFactory<>(
+        "of(Version)",
+        Value::of,
+        Version.parse("1.0.0", VersionDialect.SEMVER),
+        VersionValue.class,
+        "Version must not be null"
+      ),
+      new TypedFactory<>(
+        "of(Quantity)",
+        Value::of,
+        Quantity.parse("9.99 EUR"),
+        MeasurableValue.class,
+        "Quantity must not be null"
       )
     );
+  }
+
+  static Stream<MeasurableNullCase> measurableNullCases() {
+    Currency euro = Currency.getInstance("EUR");
+    return Stream.of(
+      new MeasurableNullCase("of(null BigInteger, Unit)", () -> Value.of((BigInteger) null, Units.METRE), "Magnitude"),
+      new MeasurableNullCase("of(null BigDecimal, Unit)", () -> Value.of((BigDecimal) null, Units.METRE), "Magnitude"),
+      new MeasurableNullCase("of(null BigInteger, Currency)", () -> Value.of((BigInteger) null, euro), "Magnitude"),
+      new MeasurableNullCase("of(null BigDecimal, Currency)", () -> Value.of((BigDecimal) null, euro), "Magnitude"),
+      new MeasurableNullCase("of(long, null Unit)", () -> Value.of(5L, (Unit) null), "Unit"),
+      new MeasurableNullCase("of(BigInteger, null Unit)", () -> Value.of(BigInteger.TWO, (Unit) null), "Unit"),
+      new MeasurableNullCase("of(BigDecimal, null Unit)", () -> Value.of(BigDecimal.ONE, (Unit) null), "Unit"),
+      new MeasurableNullCase("of(long, null Currency)", () -> Value.of(5L, (Currency) null), "Currency"),
+      new MeasurableNullCase(
+        "of(BigInteger, null Currency)",
+        () -> Value.of(BigInteger.TWO, (Currency) null),
+        "Currency"
+      ),
+      new MeasurableNullCase(
+        "of(BigDecimal, null Currency)",
+        () -> Value.of(BigDecimal.ONE, (Currency) null),
+        "Currency"
+      ),
+      new MeasurableNullCase(
+        "of(null BigDecimal, null Unit)",
+        () -> Value.of((BigDecimal) null, (Unit) null),
+        "Magnitude"
+      ),
+      new MeasurableNullCase(
+        "of(null BigInteger, null Currency)",
+        () -> Value.of((BigInteger) null, (Currency) null),
+        "Magnitude"
+      )
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("measurableNullCases")
+  @DisplayName("a null magnitude, unit or currency is an ErrorValue expecting Quantity; the magnitude is checked first")
+  void measurableNullArgumentsAreErrorValues(MeasurableNullCase nullCase) {
+    assertThat(nullCase.factory().get())
+      .isError()
+      .hasErrorMessage(nullCase.nullArgument() + " must not be null")
+      .hasExpectedTypeName("dev.zems.lib.value.Quantity");
   }
 
   static Stream<NumericFactory<?>> numericFactories() {
@@ -174,8 +237,6 @@ class ValueFactoriesTest {
       new NumericFactory<>("Float", 2.5f, FloatValue.class),
       new NumericFactory<>("Short", (short) 7, ShortValue.class),
       new NumericFactory<>("Byte", (byte) 9, ByteValue.class),
-      // BigInteger / BigDecimal also dispatch via the Number-typed path; pinned here so the
-      // Number-arm switch is the single source of truth for Number-subtype routing.
       new NumericFactory<>("BigInteger", new BigInteger("123"), BigIntegerValue.class),
       new NumericFactory<>("BigDecimal", new BigDecimal("3.14"), BigDecimalValue.class)
     );
@@ -196,8 +257,6 @@ class ValueFactoriesTest {
     assertThat(result).isInstanceOf(ErrorValue.class);
     assertThat(result.error()).get(THROWABLE).hasMessage(spec.nullErrorMessage());
   }
-
-  // ============ Number dispatch — Integer/Long/Double/Float/Short/Byte ============
 
   @ParameterizedTest(name = "Number dispatch — {0}")
   @MethodSource("numericFactories")
@@ -236,6 +295,26 @@ class ValueFactoriesTest {
     Object bigIntAsObject = new BigInteger("99999999999999999999");
     Value<Object> result = Value.of(bigIntAsObject);
     assertThat(result).isInstanceOf(BigIntegerValue.class);
+  }
+
+  @Test
+  @DisplayName("of((Object) Version) routes via the generic dispatch to an equal VersionValue")
+  void genericDispatchVersion() {
+    Version version = Version.parse("1.0", VersionDialect.MODULE);
+
+    Value<Object> result = Value.of((Object) version);
+
+    assertThat(result).isInstanceOf(VersionValue.class).isEqualTo(Value.of(version));
+  }
+
+  @Test
+  @DisplayName("of((Object) Quantity) routes via the generic dispatch to an equal MeasurableValue")
+  void genericDispatchQuantity() {
+    Quantity quantity = Quantity.parse("4.50 EUR/kg");
+
+    Value<Object> result = Value.of((Object) quantity);
+
+    assertThat(result).isInstanceOf(MeasurableValue.class).isEqualTo(Value.of(quantity));
   }
 
   @Test
@@ -290,9 +369,6 @@ class ValueFactoriesTest {
   @Test
   @DisplayName("null reading splits by static type on purpose: typed -> ErrorValue, generic -> NullValue")
   void nullReadingSplitsByStaticTypeDeliberately() {
-    // Deliberate — see CLAUDE.md "Null and error behaviour". A typed overload asserts a type, so null is a
-    // broken promise (ErrorValue); the generic of(T) is the opaque-boxing entry where null is valid data
-    // (NullValue). Do not "unify" these without revisiting value-of-null-behaviour.
     assertThat(Value.of((String) null)).isInstanceOf(ErrorValue.class);
     assertThat(Value.of((Object) null)).isInstanceOf(NullValue.class);
   }
@@ -304,14 +380,26 @@ class ValueFactoriesTest {
     assertThat(Value.of((Object) wrapped)).isSameAs(wrapped);
   }
 
-  // ============ Generic dispatch via Value.of(Object) ============
-
   @Test
   @DisplayName("Value.of(unknown raw type) wraps in BoxedValue")
   void genericOfUnknownTypeBoxes() {
     record Custom(int n) {}
     Value<Object> result = Value.of((Object) new Custom(7));
     assertThat(result).isInstanceOf(BoxedValue.class);
+  }
+
+  @Test
+  @DisplayName("Value.of(enum constant) routes through the generic dispatch to EnumValue")
+  void genericOfEnumConstantIsAnEnumValue() {
+    Value<Status> result = Value.of(Status.ACTIVE);
+    assertThat(result).isInstanceOf(EnumValue.class).isNotInstanceOf(BoxedValue.class);
+    assertThat(result.unbox()).isSameAs(Status.ACTIVE);
+  }
+
+  @Test
+  @DisplayName("Value.of((Status) null) stays NullValue: enums have no typed factory, so the generic entry answers")
+  void genericOfNullEnumReturnsNullValue() {
+    assertThat(Value.of((Status) null)).isInstanceOf(NullValue.class);
   }
 
   @Test
@@ -383,8 +471,6 @@ class ValueFactoriesTest {
     assertThat(Value.of(Locale.forLanguageTag("en-US"))).isInstanceOf(LocaleValue.class);
   }
 
-  // ============ Locale "und" rejection (special) ============
-
   @Test
   @DisplayName("randomUuid() produces a non-null UuidValue")
   void randomUuidProducesUuidValue() {
@@ -394,7 +480,6 @@ class ValueFactoriesTest {
     assertThat(b).isInstanceOf(UuidValue.class);
     assertThat(a.asUuid()).isPresent();
     assertThat(b.asUuid()).isPresent();
-    // Two random UUIDs are extremely unlikely to collide; use this as a smoke check.
     assertThat(a).isNotEqualTo(b);
   }
 
@@ -414,8 +499,6 @@ class ValueFactoriesTest {
     assertThat(result).isInstanceOf(NullValue.class);
   }
 
-  // ============ randomUuid ============
-
   @Test
   @DisplayName("ofNullable(value, fn) calls fn on non-null input")
   void ofNullableNonNullCallsLambda() {
@@ -423,7 +506,29 @@ class ValueFactoriesTest {
     assertThat(result).isInstanceOf(StringValue.class);
   }
 
-  // ============ ofNullable ============
+  @Test
+  @DisplayName("ofNullable(null) on a typed null reference returns NullValue")
+  void ofNullableSingleArgNullReturnsNullValue() {
+    String input = null;
+    Value<String> result = Value.ofNullable(input);
+    assertThat(result).isInstanceOf(NullValue.class);
+  }
+
+  @Test
+  @DisplayName("ofNullable(value) wraps a non-null reference in the matching wrapper")
+  void ofNullableSingleArgNonNullWraps() {
+    Value<String> result = Value.ofNullable("hello");
+    assertThat(result).isInstanceOf(StringValue.class);
+    assertThat(result).hasStringValue("hello");
+  }
+
+  @Test
+  @DisplayName("ofNullable(input) and of(input) split on the same typed null: NullValue vs ErrorValue")
+  void ofNullableSingleArgDiffersFromTypedOf() {
+    String input = null;
+    assertThat(Value.ofNullable(input)).isInstanceOf(NullValue.class);
+    assertThat(Value.of(input)).isInstanceOf(ErrorValue.class);
+  }
 
   @Test
   @DisplayName("errorMessage(String, Class) wraps a message into an ErrorValue")
@@ -442,9 +547,6 @@ class ValueFactoriesTest {
     assertThat(result.error()).hasValue(cause);
   }
 
-  // ============ errorMessage / errorOf with descriptor and class overloads ============
-
-  /** One row per typed of(...) overload that supports null-input rejection. */
   record TypedFactory<T>(
     String label,
     Function<T, Value<T>> factory,
@@ -458,11 +560,21 @@ class ValueFactoriesTest {
     }
   }
 
-  /** One row per primitive numeric type. */
+  record MeasurableNullCase(String label, Supplier<Value<Quantity>> factory, String nullArgument) {
+    @Override
+    public String toString() {
+      return label;
+    }
+  }
+
   record NumericFactory<N extends Number>(String label, N sample, Class<? extends Value<?>> wrapperClass) {
     @Override
     public String toString() {
       return label;
     }
+  }
+
+  enum Status {
+    ACTIVE,
   }
 }

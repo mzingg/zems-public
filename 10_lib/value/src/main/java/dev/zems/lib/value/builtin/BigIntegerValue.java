@@ -1,7 +1,7 @@
 package dev.zems.lib.value.builtin;
 
-import dev.zems.lib.value.marshal.descriptor.BuiltinTypeDescriptors;
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.BuiltinTypeDescriptors;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.math.BigInteger;
 import java.util.Objects;
 
@@ -13,5 +13,10 @@ public record BigIntegerValue(BigInteger bigInteger) implements BuiltInValue<Big
   @Override
   public TypeDescriptor<BigInteger> valueType() {
     return BuiltinTypeDescriptors.BIG_INTEGER;
+  }
+
+  @Override
+  public BigInteger unbox() {
+    return bigInteger;
   }
 }

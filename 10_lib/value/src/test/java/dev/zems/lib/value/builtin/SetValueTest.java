@@ -1,8 +1,9 @@
 package dev.zems.lib.value.builtin;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import dev.zems.lib.value.Value;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -10,11 +11,6 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * Contract test for {@link SetValue} — the immutable set-of-Values wrapper. Pins down the compact-constructor
- * validation, internal-caller enforcement, and element-copy/dedupe behaviour that distinguish {@code SetValue} from raw
- * {@code Set<Value<?>>}.
- */
 @ContractTest
 @DisplayName("SetValue")
 class SetValueTest {
@@ -24,7 +20,7 @@ class SetValueTest {
   void setOfProducesSetValue() {
     Value<Set<Value<String>>> result = Value.setOf("a", "b");
     assertThat(result).isInstanceOf(SetValue.class);
-    assertThat(Value.unbox(result)).containsExactlyInAnyOrder(Value.of("a"), Value.of("b"));
+    assertThat(result.unbox()).containsExactlyInAnyOrder(Value.of("a"), Value.of("b"));
   }
 
   @Test
@@ -32,14 +28,14 @@ class SetValueTest {
   void setOfEmpty() {
     Value<Set<Value<String>>> result = Value.setOf();
     assertThat(result).isInstanceOf(SetValue.class);
-    assertThat(Value.unbox(result)).isEmpty();
+    assertThat(result.unbox()).isEmpty();
   }
 
   @Test
   @DisplayName("Value.setOf dedupes equal raw elements (Value equality on copy)")
   void setOfDedupes() {
     Value<Set<Value<String>>> result = Value.setOf("a", "a");
-    assertThat(Value.unbox(result)).hasSize(1).containsExactly(Value.of("a"));
+    assertThat(result.unbox()).hasSize(1).containsExactly(Value.of("a"));
   }
 
   @Test
@@ -50,7 +46,7 @@ class SetValueTest {
     src.add(Value.of("a"));
     src.add(Value.of("b"));
     Value<Set<Value<String>>> result = Value.setOf(src);
-    assertThat(Value.unbox(result)).containsExactlyInAnyOrder(Value.of("c"), Value.of("a"), Value.of("b"));
+    assertThat(result.unbox()).containsExactlyInAnyOrder(Value.of("c"), Value.of("a"), Value.of("b"));
   }
 
   @Test
@@ -83,5 +79,16 @@ class SetValueTest {
     Value<Set<Value<String>>> v = Value.setOf("a", "b");
     assertThat(v.isSetOf(String.class)).isTrue();
     assertThat(v.isSetOf(Integer.class)).isFalse();
+  }
+
+  @Test
+  @DisplayName("unboxElements answers the unboxed elements as an unmodifiable set")
+  void unboxElementsAnswersUnmodifiableSet() {
+    SetValue<String> set = (SetValue<String>) Value.setOf(Set.of(Value.of("a"), Value.of("b")));
+
+    Set<String> elements = set.unboxElements();
+
+    assertThat(elements).containsExactlyInAnyOrder("a", "b");
+    assertThatThrownBy(() -> elements.add("c")).isInstanceOf(UnsupportedOperationException.class);
   }
 }

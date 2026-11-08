@@ -2,8 +2,7 @@
 <project
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns="http://maven.apache.org/POM/4.0.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
->
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
 
@@ -25,7 +24,10 @@
         <plugin>
           <groupId>com.github.eirslett</groupId>
           <artifactId>frontend-maven-plugin</artifactId>
-          <version>2.0.0</version>
+          <!-- Since 2.0.2 the plugin logs the npm child process's stderr at ERROR. Jest and Playwright write their
+               normal report there, so the `test` and `verify:smoke` scripts in every frontend package.json end in
+               `2>&1` to keep a green run free of [ERROR] lines. See GOTCHAS.md. -->
+          <version>2.0.2</version>
           <executions>
             <!-- Dependencies must exist before any other npm step. -->
             <execution>
@@ -82,8 +84,14 @@
                 <arguments>run lint</arguments>
               </configuration>
             </execution>
-            <!-- Dependency vulnerability audit, gated behind commitGate.
-                 Fails the build on moderate-or-higher advisories. -->
+            <!-- Dependency vulnerability audit, gated behind the hygiene,
+                 releaseGate and promoteGate profiles (see below). Fails the build on
+                 moderate-or-higher advisories, except those listed in
+                 npm-audit-allowlist.json (the counterpart of owasp-suppressions.xml;
+                 see npm-audit.mjs). Deliberately off the commit
+                 path, like OWASP dependency-check in parent_java: an advisory
+                 in a lockfile nobody touched must not block an unrelated
+                 commit. -->
             <execution>
               <id>npm_audit</id>
               <goals>
@@ -91,7 +99,7 @@
               </goals>
               <phase>none</phase>
               <configuration>
-                <arguments>audit --audit-level=moderate</arguments>
+                <arguments>exec -- node ${maven.multiModuleProjectDirectory}/.mvn/parent_nodejs/npm-audit.mjs --audit-level=moderate</arguments>
               </configuration>
             </execution>
           </executions>
@@ -126,8 +134,9 @@
         </plugins>
       </build>
     </profile>
-    <!-- Pre-commit gate: enables npm run lint and npm audit. Mirrors the
-         commitGate profile in parent_java. Activate explicitly:
+    <!-- Pre-commit gate: enables npm run lint. Mirrors the commitGate
+         profile in parent_java. npm audit is deliberately NOT here — it
+         runs in the hygiene, releaseGate and promoteGate profiles. Activate explicitly:
            mvn -PcommitGate verify
          The override sits in pluginManagement so it doesn't add the
          plugin to modules without a package.json. -->
@@ -144,18 +153,15 @@
                   <id>npm_lint</id>
                   <phase>process-sources</phase>
                 </execution>
-                <execution>
-                  <id>npm_audit</id>
-                  <phase>process-sources</phase>
-                </execution>
               </executions>
             </plugin>
           </plugins>
         </pluginManagement>
       </build>
     </profile>
-    <!-- Release gate: identical to commitGate today, kept distinct so the
-         two can diverge (e.g. stricter audit level). Activate explicitly:
+    <!-- Release gate: npm run lint + npm audit, kept distinct from
+         commitGate so the two can diverge (e.g. stricter audit level).
+         Activate explicitly:
            mvn -PreleaseGate verify -->
     <profile>
       <id>releaseGate</id>
@@ -180,8 +186,8 @@
         </pluginManagement>
       </build>
     </profile>
-    <!-- Promote gate: same npm lint + audit, run by 80_ops/promote/promote.sh before a module ships to the
-         public mirror. Mirrors the promoteGate profile in parent_java. -->
+    <!-- Promote gate: npm lint + npm audit, run by 80_ops/promote/promote.sh before a module ships to the
+         public mirror. Mirrors the promoteGate profile in parent_java, which runs OWASP dependency-check here. -->
     <profile>
       <id>promoteGate</id>
       <build>
@@ -195,6 +201,28 @@
                   <id>npm_lint</id>
                   <phase>process-sources</phase>
                 </execution>
+                <execution>
+                  <id>npm_audit</id>
+                  <phase>process-sources</phase>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+    <!-- Hygiene gate: npm audit, the frontend counterpart of OWASP dependency-check in parent_java. Off the commit
+         path so an advisory in a lockfile nobody touched cannot block an unrelated commit. Activate explicitly:
+           mvn -Phygiene verify -->
+    <profile>
+      <id>hygiene</id>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>com.github.eirslett</groupId>
+              <artifactId>frontend-maven-plugin</artifactId>
+              <executions>
                 <execution>
                   <id>npm_audit</id>
                   <phase>process-sources</phase>

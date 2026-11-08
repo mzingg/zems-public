@@ -3,7 +3,7 @@ package dev.zems.lib.value.builtin;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import dev.zems.lib.value.ErrorValue;
 import dev.zems.lib.value.Value;
 import java.util.AbstractMap.SimpleEntry;
@@ -14,9 +14,6 @@ import java.util.TreeMap;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * Contract test for {@link SortedMapValue} — the immutable sorted-map-of-Values wrapper.
- */
 @ContractTest
 @DisplayName("SortedMapValue")
 class SortedMapValueTest {
@@ -30,7 +27,7 @@ class SortedMapValueTest {
       Map.entry("b", 2)
     );
     assertThat(result).isInstanceOf(SortedMapValue.class);
-    SortedMap<String, Value<Integer>> unwrapped = Value.unbox(result);
+    SortedMap<String, Value<Integer>> unwrapped = result.unbox();
     assertThat(unwrapped.firstKey()).isEqualTo("a");
     assertThat(unwrapped.lastKey()).isEqualTo("c");
     assertThat(unwrapped).containsExactly(
@@ -45,7 +42,7 @@ class SortedMapValueTest {
   void emptySortedMap() {
     Value<SortedMap<String, Value<Integer>>> result = Value.emptySortedMap();
     assertThat(result).isInstanceOf(SortedMapValue.class);
-    assertThat(Value.unbox(result)).isEmpty();
+    assertThat(result.unbox()).isEmpty();
   }
 
   @Test
@@ -59,9 +56,8 @@ class SortedMapValueTest {
   @Test
   @DisplayName("sortedMapOf(map with null key) returns ErrorValue")
   void rejectsNullKey() {
-    // SimpleEntry (rather than Map.entry) because Map.entry's factory rejects null keys at the
-    // JDK layer with an NPE — we need the null key to reach Value.sortedMapOf to assert that
-    // it surfaces as an ErrorValue, not a JDK NPE.
+    // Map.entry rejects a null key with an NPE before the factory sees it; SimpleEntry lets the null reach
+    // Value.sortedMapOf so the ErrorValue answer can be asserted.
     Value<SortedMap<String, Value<Integer>>> result = Value.sortedMapOf(
       new SimpleEntry<>("a", 1),
       new SimpleEntry<>(null, 2)
@@ -97,7 +93,7 @@ class SortedMapValueTest {
     record Item(String name, int value) {}
     var src = java.util.List.of(new Item("zeta", 9), new Item("alpha", 1), new Item("middle", 5));
     Value<SortedMap<String, Value<Integer>>> result = Value.sortedMapOf(src, Item::name, Item::value);
-    SortedMap<String, Value<Integer>> unwrapped = Value.unbox(result);
+    SortedMap<String, Value<Integer>> unwrapped = result.unbox();
     assertThat(unwrapped.firstKey()).isEqualTo("alpha");
     assertThat(unwrapped.lastKey()).isEqualTo("zeta");
   }
@@ -119,9 +115,8 @@ class SortedMapValueTest {
     reverse.put("a", Value.of(1));
     reverse.put("b", Value.of(2));
     reverse.put("c", Value.of(3));
-    // reverse iterates c, b, a — the wrapper must restore natural order.
     Value<SortedMap<String, Value<Integer>>> result = Value.sortedMapOf(reverse);
-    SortedMap<String, Value<Integer>> unwrapped = Value.unbox(result);
+    SortedMap<String, Value<Integer>> unwrapped = result.unbox();
     assertThat(unwrapped.firstKey()).isEqualTo("a");
     assertThat(unwrapped.lastKey()).isEqualTo("c");
     assertThat(unwrapped).containsExactly(
@@ -139,5 +134,22 @@ class SortedMapValueTest {
     source.put(new Key(2), Value.of(2));
     source.put(new Key(1), Value.of(1));
     assertThatThrownBy(() -> Value.sortedMapOf(source)).isInstanceOf(ClassCastException.class);
+  }
+
+  @Test
+  @DisplayName("unboxEntries answers the unboxed entry values in natural key order, as an unmodifiable sorted map")
+  void unboxEntriesKeepsNaturalKeyOrderUnmodifiable() {
+    SortedMapValue<String, Integer> sorted = (SortedMapValue<String, Integer>) Value.sortedMapOf(
+      Map.entry("c", 3),
+      Map.entry("b", 2),
+      Map.entry("a", 1)
+    );
+
+    SortedMap<String, Integer> entries = sorted.unboxEntries();
+
+    assertThat(entries.firstKey()).isEqualTo("a");
+    assertThat(entries.lastKey()).isEqualTo("c");
+    assertThat(entries).containsExactly(Map.entry("a", 1), Map.entry("b", 2), Map.entry("c", 3));
+    assertThatThrownBy(() -> entries.put("d", 4)).isInstanceOf(UnsupportedOperationException.class);
   }
 }

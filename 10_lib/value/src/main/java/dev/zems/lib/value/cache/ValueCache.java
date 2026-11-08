@@ -20,36 +20,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Process-wide cache for well-known {@code Value} instances. The static {@link #INSTANCE} is built from
- * {@link ValueCachePolicy#fromSystemProperties()} at class-init; tests that need a specific policy instantiate their
- * own {@code ValueCache} directly via the package-private constructor.
+ * Process-wide cache of well-known {@code Value} instances; {@link #INSTANCE} is built from
+ * {@link ValueCachePolicy#fromSystemProperties()} at class initialisation.
  *
  * <p>
- * <strong>Always-cached</strong> (no policy knob): both booleans, all 256 byte values, all
- * 65 536 short values, and one empty instance per collection type. The total fixed footprint is ~1.6 MiB, dominated by
- * the short table.
- *
- * <p>
- * <strong>Policy-controlled</strong>: the {@code IntegerValue} cache covers
- * {@code -(intMax+1)..intMax}, the {@code LongValue} cache covers the same range as a long, and the {@code StringValue}
- * cache is a bounded LRU. See {@link ValueCachePolicy}.
- *
- * <p>
- * The {@code IntegerValue} / {@code LongValue} arrays cover a half-range of
- * {@code min(policy.intMax(), MAX_ARRAY_HALF_RANGE)} (resp. {@code longMax}). Values inside the policy bound but
- * outside that pre-allocated range fall through to a lazy {@link ConcurrentHashMap}. The {@code unbounded} preset goes
- * through this path: every int the caller actually requests becomes a cached instance, but no 4-billion-entry array is
- * allocated up-front.
+ * Always cached: both booleans, every byte and short, and one empty instance per collection type. Controlled by the
+ * policy: {@code IntegerValue} and {@code LongValue} over {@code -(max+1)..max}, and a bounded LRU of
+ * {@code StringValue}.
  */
 public final class ValueCache {
 
   public static final ValueCache INSTANCE = new ValueCache(ValueCachePolicy.fromSystemProperties());
 
-  /**
-   * Practical upper bound for the eager array allocation per type. At ~24 bytes per {@code IntegerValue} record this
-   * caps the per-type up-front allocation at ~24 MiB (1 048 576 entries × 2 sides). Values beyond this in a policy
-   * still hit the cache via the lazy map fallback; only the pre-allocation is capped.
-   */
   private static final int MAX_ARRAY_HALF_RANGE = 1 << 20;
 
   private final ValueCachePolicy policy;
@@ -60,14 +42,15 @@ public final class ValueCache {
   private final ByteValue[] byteCache;
   private final ShortValue[] shortCache;
 
-  // To avoid Integer autoboxing, we store MAX_ARRAY_HALF_RANGE values in an array for direct primitive lookup
+  // A Map<Integer, IntegerValue> lookup boxes the key on every call; the array answers the hot range without
+  // allocating, which the zero-allocation journey test pins.
   private final IntegerValue[] intArray;
   private final int intArrayMin;
   private final ConcurrentMap<Integer, IntegerValue> intMap;
   private final int intMapMin;
   private final int intMapMax;
 
-  // To avoid Long autoboxing, we store MAX_ARRAY_HALF_RANGE values in an array for direct primitive lookup
+  // Same as intArray: the array avoids boxing the key on every lookup in the hot range.
   private final LongValue[] longArray;
   private final long longArrayMin;
   private final ConcurrentMap<Long, LongValue> longMap;
@@ -109,7 +92,7 @@ public final class ValueCache {
     }
     this.intMapMax = policy.intMax();
     this.intMapMin = -policy.intMax() - 1;
-    this.intMap = (policy.intMax() > intHalf) ? new ConcurrentHashMap<>() : null;
+    this.intMap = policy.intMax() > intHalf ? new ConcurrentHashMap<>() : null;
 
     int longHalf = Math.min(policy.longMax(), MAX_ARRAY_HALF_RANGE);
     if (longHalf > 0) {
@@ -124,7 +107,7 @@ public final class ValueCache {
     }
     this.longMapMax = policy.longMax();
     this.longMapMin = -((long) policy.longMax() + 1L);
-    this.longMap = (policy.longMax() > longHalf) ? new ConcurrentHashMap<>() : null;
+    this.longMap = policy.longMax() > longHalf ? new ConcurrentHashMap<>() : null;
 
     this.stringCache = createStringCache(policy.stringMax(), policy.stringIsUnbounded());
 
@@ -151,7 +134,6 @@ public final class ValueCache {
     );
   }
 
-  /** Returns the immutable policy this cache was constructed with. */
   public ValueCachePolicy policy() {
     return policy;
   }
@@ -168,6 +150,7 @@ public final class ValueCache {
     return shortCache[s - Short.MIN_VALUE];
   }
 
+  /** The cached instance, or {@code null} when {@code i} is outside the policy's range. */
   public IntegerValue cached(int i) {
     if (intArray != null) {
       int idx = i - intArrayMin;
@@ -181,6 +164,7 @@ public final class ValueCache {
     return null;
   }
 
+  /** The cached instance, or {@code null} when {@code l} is outside the policy's range. */
   public LongValue cached(long l) {
     if (longArray != null) {
       long idx = l - longArrayMin;
@@ -194,6 +178,7 @@ public final class ValueCache {
     return null;
   }
 
+  /** The cached instance, or {@code null} when string caching is disabled or {@code s} is {@code null}. */
   public StringValue cached(String s) {
     if (stringCache == null || s == null) {
       return null;

@@ -9,6 +9,9 @@ node_modules
 ### flatten-maven-plugin output (resolved ${revision}); removed by `mvn clean`
 **/.flattened-pom.xml
 
+### OWASP dependency-check NVD data (a local releaseGate run without -Ddependency-check.skip writes it here)
+/80_ops/var/**
+
 ### IntelliJ IDEA ###
 .idea
 *.iws

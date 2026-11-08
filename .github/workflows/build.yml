@@ -35,5 +35,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # -Ddependency-check.skip: the OWASP scan bound into releaseGate runs in the maintainer's monorepo (release and
+      # promote gates) before anything is promoted here; this repo keeps no NVD key or data.
       - name: Build with Maven
-        run: nix develop --command mvn -B -T 1C -PreleaseGate verify --file pom.xml
+        run: nix develop --command mvn -B -T 1C -PreleaseGate -Ddependency-check.skip=true verify --file pom.xml

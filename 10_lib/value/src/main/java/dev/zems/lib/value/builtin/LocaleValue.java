@@ -1,7 +1,7 @@
 package dev.zems.lib.value.builtin;
 
-import dev.zems.lib.value.marshal.descriptor.BuiltinTypeDescriptors;
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.BuiltinTypeDescriptors;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -14,11 +14,8 @@ public record LocaleValue(Locale locale) implements BuiltInValue<Locale> {
   }
 
   /**
-   * True for the undetermined locale, which the value layer rejects. BCP 47 {@code "und"} is the undetermined-locale
-   * tag, and {@link Locale#ROOT} canonicalises to it (empty language → {@code toLanguageTag()} emits {@code "und"}), as
-   * do {@code Locale.forLanguageTag("")} and the literal {@code "und"} locale. Private-use tags like {@code "und-x-foo"}
-   * carry information and are accepted. This is the single spelling of the rule: the constructor, {@code Value.of(Locale)},
-   * and the {@code Value.localeOf(String)} parser all defer to it so the rejection has exactly one definition.
+   * True for the undetermined locale, which this type rejects: BCP 47 {@code "und"}, which {@link Locale#ROOT} and
+   * {@code Locale.forLanguageTag("")} also canonicalise to. A private-use tag such as {@code "und-x-foo"} is accepted.
    */
   public static boolean isUndetermined(Locale locale) {
     return Locale.ROOT.equals(locale) || "und".equals(locale.toLanguageTag());
@@ -27,5 +24,10 @@ public record LocaleValue(Locale locale) implements BuiltInValue<Locale> {
   @Override
   public TypeDescriptor<Locale> valueType() {
     return BuiltinTypeDescriptors.LOCALE;
+  }
+
+  @Override
+  public Locale unbox() {
+    return locale;
   }
 }

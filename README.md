@@ -1,46 +1,13 @@
 # ZEMS
 
-**Zero-dependency Extensible Module Suite** — small, focused Java libraries with no runtime dependencies, built for the
-current JDK.
+**Zero-dependency Extensible Module Suite**: small, focused Java libraries with no third-party runtime dependencies,
+built for the current JDK and released on Maven Central.
 
-## Libraries
+| Library                           | What it does                                                                                                                                                                                                                                                     | Documentation                                        |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| [common](10_lib/common/README.md) | ZEMS Common holds the helpers the ZEMS libraries are built and tested with: JUnit tags that sort tests into contract and journey tests, and a per-thread allocation measurement.                                                                                 | [common documentation](10_lib/common/docs/README.md) |
+| [value](10_lib/value/README.md)   | Immutable value types for Java, built to become value classes when Project Valhalla lands. Each value carries its own state, such as null or an error, so bad input does not throw where it is parsed: it travels with the data and is handled where it is used. | [value documentation](10_lib/value/docs/README.md)   |
 
-| Library                         | Coordinate           | What it does                                                                                                                                             |
-| ------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [value](10_lib/value/README.md) | `dev.zems.lib:value` | Immutable value types with explicit state (null / undefined / unresolved / error) and a wire-format-agnostic marshalling API (binary + JSON). Zero deps. |
-
-## Use it
-
-Requires **JDK 25 or newer**. See the [releases](https://github.com/mzingg/zems-public/releases) for the latest version.
-
-Released versions are published to **Maven Central** — no extra repository or token needed, just the dependency:
-
-```xml
-<dependency>
-  <groupId>dev.zems.lib</groupId>
-  <artifactId>value</artifactId>
-  <version>0.0.10</version>
-</dependency>
-```
-
-## Build from source
-
-```bash
-nix develop --command mvn -B -PreleaseGate verify
-```
-
-The build uses a pinned toolchain via Nix (JDK + Maven 3.9); `nix develop` brings it on PATH.
-
-## Contributing
-
-Contributions are welcome — please read [CONTRIBUTING.md](CONTRIBUTING.md) first. In short: open pull requests against
-the **`contributions`** branch (not `main`). `main` is published by the maintainer and is not a merge target.
-
-## Licence
-
-Apache License 2.0 — see [LICENSE](LICENSE).
-
-## More
-
-- Project site — <https://zems.dev> (source: [50_frontend/site_zems_public](50_frontend/site_zems_public/README.md))
-- Changelog — [GitHub Releases](https://github.com/mzingg/zems-public/releases)
+- [Setup](docs/setup.md) — the JDK floor and the coordinates of each library.
+- [Contributing](https://github.com/mzingg/zems-public/blob/main/CONTRIBUTING.md) — how to contribute, the licence, and
+  forking.

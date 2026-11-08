@@ -1,11 +1,12 @@
 package dev.zems.lib.value.builtin;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import dev.zems.lib.value.Value;
-import dev.zems.lib.value.marshal.descriptor.BuiltinTypeDescriptors;
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.BuiltinTypeDescriptors;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,5 +53,16 @@ class ListValueTest {
   void valueTypeNullForHeterogeneous() {
     List<Value<Object>> mixed = List.of(up(Value.of("a")), up(Value.of(1)));
     assertThat(Value.listOf(mixed).valueType()).isNull();
+  }
+
+  @Test
+  @DisplayName("unboxElements answers the unboxed elements in list order, as an unmodifiable list")
+  void unboxElementsAnswersUnmodifiableListInOrder() {
+    ListValue<String> list = (ListValue<String>) Value.listOf(List.of(Value.of("c"), Value.of("a"), Value.of("c")));
+
+    List<String> elements = list.unboxElements();
+
+    assertThat(elements).containsExactly("c", "a", "c");
+    assertThatThrownBy(() -> elements.add("d")).isInstanceOf(UnsupportedOperationException.class);
   }
 }

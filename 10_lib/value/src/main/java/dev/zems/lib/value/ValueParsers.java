@@ -9,11 +9,14 @@ import dev.zems.lib.value.builtin.LocalDateTimeValue;
 import dev.zems.lib.value.builtin.LocalDateValue;
 import dev.zems.lib.value.builtin.LocalTimeValue;
 import dev.zems.lib.value.builtin.LocaleValue;
+import dev.zems.lib.value.builtin.MeasurableValue;
 import dev.zems.lib.value.builtin.OffsetDateTimeValue;
 import dev.zems.lib.value.builtin.PeriodValue;
 import dev.zems.lib.value.builtin.TimeInstantValue;
+import dev.zems.lib.value.builtin.TypeValue;
 import dev.zems.lib.value.builtin.UrlValue;
 import dev.zems.lib.value.builtin.UuidValue;
+import dev.zems.lib.value.builtin.VersionValue;
 import dev.zems.lib.value.builtin.YearMonthValue;
 import dev.zems.lib.value.builtin.YearValue;
 import dev.zems.lib.value.builtin.ZoneIdValue;
@@ -41,19 +44,19 @@ import java.util.Currency;
 import java.util.Locale;
 import java.util.UUID;
 
-/**
- * Package-private parser and cross-type-constructor implementations for {@code Value.<type>Of(...)} factories — string
- * parsers and convenience constructors that wrap arbitrary input into the matching built-in {@link Value} subtype,
- * returning an {@link ErrorValue} on null/blank/invalid input. Reachable through {@code Value.*} delegates only.
- */
+/** Parser and cross-type constructor bodies behind the {@code Value.<type>Of(...)} entries. */
 final class ValueParsers {
 
   private ValueParsers() {}
 
   private static final String NOT_A_NUMBER = "Not a number: ";
   private static final String NOT_AN_INTEGER = " is not an integer (use !double or !bigdec)";
+  private static final int INT_DIGITS = 10;
+  private static final int LONG_DIGITS = 19;
+  private static final int SHORT_DIGITS = 5;
+  private static final int BYTE_DIGITS = 3;
+  private static final int BIG_INTEGER_DIGITS = 1_000;
 
-  // Canonical precondition messages for null / null-or-blank parser input (see CLAUDE.md "Null and error behaviour").
   private static String mustNotBeNull(String name) {
     return name + " must not be null";
   }
@@ -61,8 +64,6 @@ final class ValueParsers {
   private static String mustNotBeNullOrBlank(String name) {
     return name + " must not be null or empty";
   }
-
-  // -- UUID --
 
   static Value<UUID> uuidOf(String s) {
     if (s == null || s.isBlank()) {
@@ -79,8 +80,6 @@ final class ValueParsers {
     return new UuidValue(new UUID(mostSigBits, leastSigBits));
   }
 
-  // -- URL --
-
   static Value<URI> urlOf(String s) {
     if (s == null || s.isBlank()) {
       return Value.errorMessage(mustNotBeNullOrBlank("URI string"), URI.class);
@@ -91,8 +90,6 @@ final class ValueParsers {
       return Value.errorOf(e, URI.class);
     }
   }
-
-  // -- Instant --
 
   static Value<Instant> timeInstantOf(String s) {
     if (s == null || s.isBlank()) {
@@ -125,8 +122,6 @@ final class ValueParsers {
     return new TimeInstantValue(Instant.ofEpochMilli(epochMilli));
   }
 
-  // -- LocalDate --
-
   static Value<LocalDate> localDateOf(String s) {
     if (s == null || s.isBlank()) {
       return Value.errorMessage(mustNotBeNullOrBlank("LocalDate string"), LocalDate.class);
@@ -153,8 +148,6 @@ final class ValueParsers {
       return Value.errorOf(e, LocalDate.class);
     }
   }
-
-  // -- LocalDateTime --
 
   static Value<LocalDateTime> localDateTimeOf(String s) {
     if (s == null || s.isBlank()) {
@@ -190,8 +183,6 @@ final class ValueParsers {
     }
   }
 
-  // -- ZonedDateTime --
-
   static Value<ZonedDateTime> zonedDateTimeOf(String s) {
     if (s == null || s.isBlank()) {
       return Value.errorMessage(mustNotBeNullOrBlank("ZonedDateTime string"), ZonedDateTime.class);
@@ -203,8 +194,6 @@ final class ValueParsers {
     }
   }
 
-  // -- OffsetDateTime --
-
   static Value<OffsetDateTime> offsetDateTimeOf(String s) {
     if (s == null || s.isBlank()) {
       return Value.errorMessage(mustNotBeNullOrBlank("OffsetDateTime string"), OffsetDateTime.class);
@@ -215,8 +204,6 @@ final class ValueParsers {
       return Value.errorOf(e, OffsetDateTime.class);
     }
   }
-
-  // -- LocalTime --
 
   static Value<LocalTime> localTimeOf(String s) {
     if (s == null || s.isBlank()) {
@@ -253,8 +240,6 @@ final class ValueParsers {
     }
   }
 
-  // -- Year --
-
   static Value<Year> yearOf(String s) {
     if (s == null || s.isBlank()) {
       return Value.errorMessage(mustNotBeNullOrBlank("Year string"), Year.class);
@@ -273,8 +258,6 @@ final class ValueParsers {
       return Value.errorOf(e, Year.class);
     }
   }
-
-  // -- YearMonth --
 
   static Value<YearMonth> yearMonthOf(String s) {
     if (s == null || s.isBlank()) {
@@ -295,8 +278,6 @@ final class ValueParsers {
     }
   }
 
-  // -- ZoneId --
-
   static Value<ZoneId> zoneIdOf(String s) {
     if (s == null || s.isBlank()) {
       return Value.errorMessage(mustNotBeNullOrBlank("ZoneId string"), ZoneId.class);
@@ -307,8 +288,6 @@ final class ValueParsers {
       return Value.errorOf(e, ZoneId.class);
     }
   }
-
-  // -- Duration --
 
   static Value<Duration> durationOf(String s) {
     if (s == null || s.isBlank()) {
@@ -357,8 +336,6 @@ final class ValueParsers {
     }
   }
 
-  // -- Period --
-
   static Value<Period> periodOf(String s) {
     if (s == null || s.isBlank()) {
       return Value.errorMessage(mustNotBeNullOrBlank("Period string"), Period.class);
@@ -379,7 +356,11 @@ final class ValueParsers {
   }
 
   static Value<Period> periodOfWeeks(int weeks) {
-    return new PeriodValue(Period.ofWeeks(weeks));
+    try {
+      return new PeriodValue(Period.ofWeeks(weeks));
+    } catch (ArithmeticException e) {
+      return Value.errorOf(e, Period.class);
+    }
   }
 
   static Value<Period> periodOfMonths(int months) {
@@ -389,8 +370,6 @@ final class ValueParsers {
   static Value<Period> periodOfYears(int years) {
     return new PeriodValue(Period.ofYears(years));
   }
-
-  // -- BigInteger --
 
   static Value<BigInteger> bigIntegerOf(String s) {
     if (s == null || s.isBlank()) {
@@ -417,8 +396,6 @@ final class ValueParsers {
       return Value.errorOf(e, BigInteger.class);
     }
   }
-
-  // -- BigDecimal --
 
   static Value<BigDecimal> bigDecimalOf(String s) {
     if (s == null || s.isBlank()) {
@@ -457,8 +434,6 @@ final class ValueParsers {
     return new BigDecimalValue(new BigDecimal(unscaled, scale));
   }
 
-  // -- Locale --
-
   static Value<Locale> localeOf(String tag) {
     if (tag == null || tag.isBlank()) {
       return Value.errorMessage(mustNotBeNullOrBlank("Locale tag"), Locale.class);
@@ -470,8 +445,6 @@ final class ValueParsers {
     return new LocaleValue(parsed);
   }
 
-  // -- Currency --
-
   static Value<Currency> currencyOf(String code) {
     if (code == null || code.isBlank()) {
       return Value.errorMessage(mustNotBeNullOrBlank("Currency code"), Currency.class);
@@ -482,8 +455,6 @@ final class ValueParsers {
       return Value.errorOf(e, Currency.class);
     }
   }
-
-  // -- InetAddress --
 
   static Value<InetAddress> inetAddressOf(String literal) {
     if (literal == null || literal.isBlank()) {
@@ -507,15 +478,40 @@ final class ValueParsers {
     }
   }
 
-  // -- Type-symbol parsing (Value.fromSymbol) --
+  static Value<TypeName> typeOf(String name) {
+    if (name == null || name.isBlank()) {
+      return Value.errorMessage(mustNotBeNullOrBlank("Type name"), TypeName.class);
+    }
+    if (!TypeName.isQualifiedName(name)) {
+      return Value.errorMessage("Invalid type name: " + name, TypeName.class);
+    }
+    return new TypeValue(new TypeName(name));
+  }
 
-  /**
-   * Parses {@code text} as the concrete built-in type named by the short {@code symbol} (e.g. {@code "bigint"},
-   * {@code "instant"}). Lenient — returns an {@link ErrorValue} on an unknown symbol or unparseable text. Numeric
-   * symbols are strict: a value out of the target's range, or a fractional value for an integer target, yields an
-   * ErrorValue with a descriptive message. The tree-spec pseudo-symbols {@code "number"} and {@code "ref"} are resolved
-   * by the tree parser, not here.
-   */
+  static Value<Version> versionOf(String text, VersionDialect dialect) {
+    try {
+      return new VersionValue(Version.parse(text, dialect));
+    } catch (IllegalArgumentException e) {
+      return Value.errorMessage(e.getMessage(), Version.class);
+    }
+  }
+
+  static Value<Version> qualifiedVersionOf(String qualified) {
+    try {
+      return new VersionValue(Version.parseQualified(qualified));
+    } catch (IllegalArgumentException e) {
+      return Value.errorMessage(e.getMessage(), Version.class);
+    }
+  }
+
+  static Value<Quantity> measurableOf(String text) {
+    try {
+      return new MeasurableValue(Quantity.parse(text));
+    } catch (IllegalArgumentException e) {
+      return Value.errorMessage(e.getMessage(), Quantity.class);
+    }
+  }
+
   static Value<?> fromSymbol(String symbol, String text) {
     if (symbol == null || symbol.isBlank()) {
       return Value.errorMessage("Type symbol must not be null or blank", String.class);
@@ -551,6 +547,11 @@ final class ValueParsers {
       case "locale" -> localeOf(text);
       case "currency" -> currencyOf(text);
       case "ip" -> inetAddressOf(text);
+      case "type" -> typeOf(text);
+      case "semver" -> versionOf(text, VersionDialect.SEMVER);
+      case "jdk" -> versionOf(text, VersionDialect.JDK);
+      case "jpms" -> versionOf(text, VersionDialect.MODULE);
+      case "version" -> qualifiedVersionOf(text);
       default -> Value.errorMessage("Unknown type symbol: " + symbol, String.class);
     };
   }
@@ -572,7 +573,6 @@ final class ValueParsers {
     return Value.of(s.charAt(0));
   }
 
-  // Parses a numeric literal (underscore group separators stripped) to an exact BigDecimal, or null if unparseable.
   private static BigDecimal numericLiteral(String s) {
     if (s.isBlank()) {
       return null;
@@ -584,8 +584,14 @@ final class ValueParsers {
     }
   }
 
-  private static boolean isWholeValued(BigDecimal d) {
-    return d.stripTrailingZeros().scale() <= 0;
+  private static boolean isNotWholeValued(BigDecimal d) {
+    return d.stripTrailingZeros().scale() > 0;
+  }
+
+  // Decides on the digit count before the exponent is expanded, whose cost follows the exponent; long arithmetic,
+  // because precision minus scale overflows an int at the edge of the scale range.
+  private static long wholeDigits(BigDecimal d) {
+    return (long) d.precision() - d.scale();
   }
 
   private static Value<Integer> numberAsInteger(String s) {
@@ -593,8 +599,11 @@ final class ValueParsers {
     if (d == null) {
       return Value.errorMessage(NOT_A_NUMBER + s, Integer.class);
     }
-    if (!isWholeValued(d)) {
+    if (isNotWholeValued(d)) {
       return Value.errorMessage(s + NOT_AN_INTEGER, Integer.class);
+    }
+    if (d.signum() != 0 && wholeDigits(d) > INT_DIGITS) {
+      return Value.errorMessage(s + " overflows int", Integer.class);
     }
     BigInteger i = d.toBigIntegerExact();
     if (i.bitLength() > 31) {
@@ -608,8 +617,11 @@ final class ValueParsers {
     if (d == null) {
       return Value.errorMessage(NOT_A_NUMBER + s, Long.class);
     }
-    if (!isWholeValued(d)) {
+    if (isNotWholeValued(d)) {
       return Value.errorMessage(s + NOT_AN_INTEGER, Long.class);
+    }
+    if (d.signum() != 0 && wholeDigits(d) > LONG_DIGITS) {
+      return Value.errorMessage(s + " overflows long", Long.class);
     }
     BigInteger i = d.toBigIntegerExact();
     if (i.bitLength() > 63) {
@@ -623,8 +635,11 @@ final class ValueParsers {
     if (d == null) {
       return Value.errorMessage(NOT_A_NUMBER + s, Short.class);
     }
-    if (!isWholeValued(d)) {
+    if (isNotWholeValued(d)) {
       return Value.errorMessage(s + NOT_AN_INTEGER, Short.class);
+    }
+    if (d.signum() != 0 && wholeDigits(d) > SHORT_DIGITS) {
+      return Value.errorMessage(s + " overflows short", Short.class);
     }
     BigInteger i = d.toBigIntegerExact();
     if (i.bitLength() > 15) {
@@ -638,8 +653,11 @@ final class ValueParsers {
     if (d == null) {
       return Value.errorMessage(NOT_A_NUMBER + s, Byte.class);
     }
-    if (!isWholeValued(d)) {
+    if (isNotWholeValued(d)) {
       return Value.errorMessage(s + NOT_AN_INTEGER, Byte.class);
+    }
+    if (d.signum() != 0 && wholeDigits(d) > BYTE_DIGITS) {
+      return Value.errorMessage(s + " overflows byte", Byte.class);
     }
     BigInteger i = d.toBigIntegerExact();
     if (i.bitLength() > 7) {
@@ -653,8 +671,12 @@ final class ValueParsers {
     if (d == null) {
       return Value.errorMessage(NOT_A_NUMBER + s, BigInteger.class);
     }
-    if (!isWholeValued(d)) {
+    if (isNotWholeValued(d)) {
       return Value.errorMessage(s + " is not an integer (use !bigdec)", BigInteger.class);
+    }
+    int cap = Math.max(BIG_INTEGER_DIGITS, d.precision());
+    if (d.signum() != 0 && wholeDigits(d) > cap) {
+      return Value.errorMessage(s + " has more than " + cap + " digits", BigInteger.class);
     }
     return Value.of(d.toBigIntegerExact());
   }

@@ -1,11 +1,10 @@
 package dev.zems.lib.value;
 
-import static dev.zems.lib.value.ValueAssertions.assertThat;
+import static dev.zems.lib.value.junit.ValueAssertions.assertThat;
 
-import dev.zems.lib.common._test.ContractTest;
-import dev.zems.lib.value.marshal.Protocol;
-import dev.zems.lib.value.marshal.ValueIo;
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.common.junit.ContractTest;
+import dev.zems.lib.value.valueio.ValueIo;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
@@ -36,13 +35,13 @@ class TombstoneValueTest {
   }
 
   @Test
+  @DisplayName("a tombstone is not null, is defined, is resolved and carries no error")
   void existingPredicatesUnchangedForTombstone() {
     var t = Value.<String>tombstone();
-    // Tombstone is its own state; the existing predicates only check for their specific state.
-    assertThat(t.isNotNull()).isTrue(); // not specifically NullValue
-    assertThat(t.isDefined()).isTrue(); // not specifically UndefinedValue
-    assertThat(t.isResolved()).isTrue(); // not specifically UnresolvedValue
-    assertThat(t.error()).isEmpty(); // not ErrorValue
+    assertThat(t.isNotNull()).isTrue();
+    assertThat(t.isDefined()).isTrue();
+    assertThat(t.isResolved()).isTrue();
+    assertThat(t.error()).isEmpty();
   }
 
   @Test

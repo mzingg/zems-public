@@ -2,12 +2,11 @@ package dev.zems.lib.value;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.zems.lib.common._test.ContractTest;
-import dev.zems.lib.value.marshal.Protocol;
-import dev.zems.lib.value.marshal.ValueIo;
-import dev.zems.lib.value.marshal.descriptor.ListTypeDescriptor;
-import dev.zems.lib.value.marshal.descriptor.MapTypeDescriptor;
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.common.junit.ContractTest;
+import dev.zems.lib.value.valueio.ValueIo;
+import dev.zems.lib.value.valueio.descriptor.ListTypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.MapTypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,12 +17,7 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * Regression for review #4: an ErrorValue read through a {@link ListTypeDescriptor} or {@link MapTypeDescriptor}
- * previously lost element-type info, becoming an {@code ErrorValue<List>} (raw). With Shape B (ErrorValue carries a
- * {@link TypeDescriptor}), the original descriptor survives the round-trip.
- */
-@DisplayName("ErrorValue collection type round-trip (review #4)")
+@DisplayName("ErrorValue keeps its collection descriptor through a round-trip")
 @ContractTest
 class ErrorValueCollectionTypeTest {
 

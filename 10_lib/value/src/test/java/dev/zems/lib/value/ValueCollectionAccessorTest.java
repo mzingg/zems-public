@@ -2,7 +2,7 @@ package dev.zems.lib.value;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -175,21 +175,22 @@ class ValueCollectionAccessorTest {
   @DisplayName("isXxxOf — parameterised across all BuiltInValue scalars")
   class CollectionPredicateParameterised {
 
+    private static final long LONG_ABOVE_INT_RANGE = 10_000_000_000L;
+    private static final short SHORT_ABOVE_BYTE_RANGE = 30_000;
+    private static final BigInteger BIG_INTEGER_ABOVE_LONG_RANGE = new BigInteger("99999999999999999999");
+
     static Stream<ScalarCase> scalars() {
       return Stream.of(
         new ScalarCase("String", String.class, Value.of("hello")),
         new ScalarCase("Boolean", Boolean.class, Value.of(true)),
         new ScalarCase("Character", Character.class, Value.of('x')),
         new ScalarCase("Integer", Integer.class, Value.of(42)),
-        // Long > Integer.MAX_VALUE so it's unambiguously a Long, not also an Integer.
-        new ScalarCase("Long", Long.class, Value.of(10_000_000_000L)),
+        new ScalarCase("Long", Long.class, Value.of(LONG_ABOVE_INT_RANGE)),
         new ScalarCase("Double", Double.class, Value.of(Math.PI)),
         new ScalarCase("Float", Float.class, Value.of(1.0e20f)),
-        // Short > Byte.MAX_VALUE so it's unambiguously a Short.
-        new ScalarCase("Short", Short.class, Value.of((short) 30_000)),
+        new ScalarCase("Short", Short.class, Value.of(SHORT_ABOVE_BYTE_RANGE)),
         new ScalarCase("Byte", Byte.class, Value.of((byte) 9)),
-        // BigInteger > Long.MAX_VALUE so it's unambiguously a BigInteger.
-        new ScalarCase("BigInteger", BigInteger.class, Value.of(new BigInteger("99999999999999999999"))),
+        new ScalarCase("BigInteger", BigInteger.class, Value.of(BIG_INTEGER_ABOVE_LONG_RANGE)),
         new ScalarCase(
           "BigDecimal",
           BigDecimal.class,
@@ -218,7 +219,9 @@ class ValueCollectionAccessorTest {
         new ScalarCase("Period", Period.class, Value.of(Period.of(1, 2, 3))),
         new ScalarCase("Locale", Locale.class, Value.of(Locale.forLanguageTag("en-US"))),
         new ScalarCase("Currency", Currency.class, Value.of(Currency.getInstance("USD"))),
-        new ScalarCase("InetAddress", InetAddress.class, Value.of(InetAddress.ofLiteral("192.168.1.1")))
+        new ScalarCase("InetAddress", InetAddress.class, Value.of(InetAddress.ofLiteral("192.168.1.1"))),
+        new ScalarCase("TypeName", TypeName.class, Value.typeOf("com.example.Person")),
+        new ScalarCase("Enum", Status.class, Value.of(Status.ACTIVE))
       );
     }
 
@@ -307,5 +310,9 @@ class ValueCollectionAccessorTest {
         Value.sortedMapOf(Map.entry("k", Value.unresolved())).isSortedMapOf(String.class, String.class)
       ).isFalse();
     }
+  }
+
+  enum Status {
+    ACTIVE,
   }
 }

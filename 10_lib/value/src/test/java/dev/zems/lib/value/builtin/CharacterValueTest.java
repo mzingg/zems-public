@@ -1,12 +1,11 @@
 package dev.zems.lib.value.builtin;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static dev.zems.lib.value.junit.ValueAssertions.assertThat;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import dev.zems.lib.value.Value;
-import dev.zems.lib.value.marshal.Protocol;
-import dev.zems.lib.value.marshal.ValueIo;
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.value.valueio.ValueIo;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
@@ -49,8 +48,8 @@ class CharacterValueTest {
   }
 
   @Test
-  void asStringReturnsCanonicalForm() {
-    assertThat(Value.of('Q').asString()).contains("Q");
+  void rendersItsCanonicalStringForm() {
+    assertThat(Value.of('Q').convertTo(String.class)).hasStringValue("Q");
   }
 
   @Test

@@ -5,6 +5,7 @@ import dev.zems.lib.value.builtin.BigIntegerValue;
 import dev.zems.lib.value.builtin.CharacterValue;
 import dev.zems.lib.value.builtin.CurrencyValue;
 import dev.zems.lib.value.builtin.DurationValue;
+import dev.zems.lib.value.builtin.EnumValue;
 import dev.zems.lib.value.builtin.InetAddressValue;
 import dev.zems.lib.value.builtin.ListValue;
 import dev.zems.lib.value.builtin.LocalDateTimeValue;
@@ -12,13 +13,16 @@ import dev.zems.lib.value.builtin.LocalDateValue;
 import dev.zems.lib.value.builtin.LocalTimeValue;
 import dev.zems.lib.value.builtin.LocaleValue;
 import dev.zems.lib.value.builtin.MapValue;
+import dev.zems.lib.value.builtin.MeasurableValue;
 import dev.zems.lib.value.builtin.OffsetDateTimeValue;
 import dev.zems.lib.value.builtin.PeriodValue;
 import dev.zems.lib.value.builtin.SetValue;
 import dev.zems.lib.value.builtin.SortedMapValue;
 import dev.zems.lib.value.builtin.TimeInstantValue;
+import dev.zems.lib.value.builtin.TypeValue;
 import dev.zems.lib.value.builtin.UrlValue;
 import dev.zems.lib.value.builtin.UuidValue;
+import dev.zems.lib.value.builtin.VersionValue;
 import dev.zems.lib.value.builtin.YearMonthValue;
 import dev.zems.lib.value.builtin.YearValue;
 import dev.zems.lib.value.builtin.ZoneIdValue;
@@ -48,18 +52,8 @@ import java.util.SortedMap;
 import java.util.UUID;
 
 /**
- * Typed-accessor facet of {@link Value}: the {@code Optional<JdkType>} getters that return the wrapped JDK value when
- * this is the expected subtype (and empty otherwise), plus collection unwrappers {@link #asList}, {@link #asSet},
- * {@link #asMap}.
- *
- * <p>
- * {@code Value<T>} extends this interface so callers see these methods directly on {@code Value}; this type exists
- * purely to keep the {@link Value} source readable.
- *
- * <p>
- * Note: {@code asNumber()} (polymorphic across the six primitive numeric wrappers) lives on {@link ValueConversions} so
- * {@code asInteger}/{@code asDouble} can call it without an interface dependency. {@code Value} inherits it via
- * {@code ValueConversions}.
+ * Typed-accessor facet of {@link Value}: each {@code as...()} answers the wrapped JDK value when this is the matching
+ * subtype and empty otherwise.
  */
 public interface ValueAccessors {
   default Optional<Character> asCharacter() {
@@ -142,6 +136,37 @@ public interface ValueAccessors {
 
   default Optional<InetAddress> asInetAddress() {
     return this instanceof InetAddressValue(InetAddress inetAddress) ? Optional.of(inetAddress) : Optional.empty();
+  }
+
+  /** The qualified name a {@link TypeValue} carries, never a {@code Class}. */
+  default Optional<String> asTypeName() {
+    return this instanceof TypeValue(TypeName typeName) ? Optional.of(typeName.name()) : Optional.empty();
+  }
+
+  default Optional<Version> asVersion() {
+    return this instanceof VersionValue(Version version) ? Optional.of(version) : Optional.empty();
+  }
+
+  default Optional<Quantity> asQuantity() {
+    return this instanceof MeasurableValue(Quantity quantity) ? Optional.of(quantity) : Optional.empty();
+  }
+
+  default Optional<Enum<?>> asEnum() {
+    return this instanceof EnumValue<?>(Enum<?> constant) ? Optional.of(constant) : Optional.empty();
+  }
+
+  /**
+   * The constant, present only when it belongs to {@code type}.
+   *
+   * @throws IllegalArgumentException if {@code type} is {@code null}
+   */
+  default <E extends Enum<E>> Optional<E> asEnum(Class<E> type) {
+    if (type == null) {
+      throw new IllegalArgumentException("type must not be null");
+    }
+    return this instanceof EnumValue<?>(Enum<?> constant) && type.isInstance(constant)
+      ? Optional.of(type.cast(constant))
+      : Optional.empty();
   }
 
   default Optional<List<? extends Value<?>>> asList() {

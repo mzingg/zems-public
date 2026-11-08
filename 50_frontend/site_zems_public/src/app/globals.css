@@ -29,20 +29,63 @@ body {
   color: var(--fg);
   background: var(--bg);
 }
-main {
-  max-width: 46rem;
+.doc-layout {
+  max-width: 64rem;
   margin: 0 auto;
-  padding: 4rem 1.25rem 5rem;
+  padding: 2rem 1.25rem 0;
+}
+main {
+  min-width: 0;
+  padding-bottom: 3rem;
+}
+@media (min-width: 48rem) {
+  .doc-layout {
+    display: grid;
+    grid-template-columns: 14rem minmax(0, 1fr);
+    gap: 3rem;
+    padding-top: 4rem;
+  }
+}
+.doc-nav {
+  font-size: 0.95rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+@media (min-width: 48rem) {
+  .doc-nav {
+    border-bottom: none;
+    border-right: 1px solid var(--line);
+    padding: 0 1.5rem 0 0;
+    margin: 0;
+  }
+}
+.doc-nav h2 {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+}
+.doc-nav section:first-child h2 {
+  margin-top: 0;
+}
+.doc-nav ul {
+  list-style: none;
+  padding-left: 0;
+}
+.doc-nav a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.doc-nav a:hover {
+  color: var(--accent);
+}
+.doc-nav a[aria-current='page'] {
+  color: var(--accent);
+  font-weight: 600;
 }
 h1 {
   font-size: 2.4rem;
-  margin: 0 0 0.25rem;
+  margin: 0 0 1.5rem;
   letter-spacing: -0.02em;
-}
-.tagline {
-  font-size: 1.2rem;
-  color: var(--muted);
-  margin: 0 0 2.5rem;
 }
 h2 {
   font-size: 1.05rem;
@@ -79,8 +122,32 @@ li {
 a {
   color: var(--accent);
 }
+article h2 {
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--fg);
+}
+table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+th,
+td {
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+pre.mermaid {
+  background: none;
+  text-align: center;
+}
 footer {
-  margin-top: 3rem;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+  border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 0.9rem;
 }

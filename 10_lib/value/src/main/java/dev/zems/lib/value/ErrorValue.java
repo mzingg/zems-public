@@ -1,27 +1,12 @@
 package dev.zems.lib.value;
 
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.util.Objects;
 
 /**
- * Represents a failed attempt to produce a value.
- *
- * <p>
- * Equality is based on the throwable's class and message and on the expected-type descriptor — not on throwable
- * identity. This is because {@link Throwable#equals(Object)} uses identity semantics, but ErrorValue follows the value
- * library's convention of value-based equality.
- *
- * <p>
- * Carrying a {@link TypeDescriptor} (rather than a raw {@link Class}) preserves generic structure: an
- * {@code ErrorValue} for a {@code List<Foo>} reads back as {@code ErrorValue<List<Foo>>}, not the erased
- * {@code ErrorValue<List>}.
- *
- * <p>
- * <b>Direct invocation of the canonical constructor is unsupported.</b> Records require a public
- * canonical constructor, but production code must construct error values via {@link Value#errorOf(Throwable, Class)} /
- * {@link Value#errorMessage(String, Class)} (or the {@link TypeDescriptor}-typed overloads). Calling
- * {@code new ErrorValue<>(...)} directly may produce wrappers that violate library invariants — this is not detected at
- * runtime.
+ * State marker for a failed attempt to produce a value. Equality compares the throwable's class and message and the
+ * expected-type descriptor, not throwable identity. Construct through {@link Value#errorOf} or
+ * {@link Value#errorMessage}: the canonical constructor is public only because records require it.
  */
 public record ErrorValue<Expected>(
   Throwable throwable,
@@ -42,7 +27,12 @@ public record ErrorValue<Expected>(
   }
 
   @Override
-  @SuppressWarnings("PMD.SimplifyBooleanReturns")
+  public Expected unbox() {
+    throw new IllegalStateException("Cannot unbox state-marker value ErrorValue");
+  }
+
+  @Override
+  @SuppressWarnings("PMD.SimplifyBooleanReturns") // the record-pattern guard reads clearer than one folded expression
   public boolean equals(Object o) {
     if (!(o instanceof ErrorValue<?>(Throwable otherThrowable, TypeDescriptor<?> otherType))) {
       return false;

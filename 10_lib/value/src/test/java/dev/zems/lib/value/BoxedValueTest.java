@@ -3,19 +3,10 @@ package dev.zems.lib.value;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * Contract test for {@link BoxedValue} — pins the compact-constructor null rejection, the inner-reference round-trip,
- * and the {@code valueType()} class-cache reuse.
- *
- * <p>
- * The end-to-end journey (`Value.of(record) → unbox → marshal → read → unbox again`) is exercised by
- * {@code RecursiveValueRoundTripTest.listOfPoints()} and the related cases in that file — no separate journey test
- * is added here.
- */
 @ContractTest
 @DisplayName("BoxedValue")
 class BoxedValueTest {
@@ -44,5 +35,15 @@ class BoxedValueTest {
     var first = new BoxedValue<>(new Point(1, 2));
     var second = new BoxedValue<>(new Point(3, 4));
     assertThat(first.valueType()).isSameAs(second.valueType());
+  }
+
+  @Test
+  @DisplayName("compact constructor rejects a state marker as inner with IAE naming its type")
+  void rejectsStateMarkerInner() {
+    Value<String> marker = Value.nullValue();
+
+    assertThatThrownBy(() -> new BoxedValue<>(marker))
+      .isInstanceOf(IllegalArgumentException.class)
+      .hasMessage("Cannot box a Value (NullValue) - use the Value directly");
   }
 }

@@ -45,13 +45,32 @@ run_step() {
   fi
 }
 
-# 1. Collect currently staged files
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+# 1. Collect currently staged files. --no-renames matters: git's default rename
+#    detection reports a moved file as a rename (R), which --diff-filter=ACM
+#    drops, so a pure `git mv` (an issue promotion to delivered/) reached none
+#    of the steps below, the issue-tracker lint included. Without detection the
+#    move is a delete plus an add, and the new path is listed.
+STAGED_FILES=$(git diff --cached --name-only --no-renames --diff-filter=ACM)
 if [ -z "$STAGED_FILES" ]; then exit 0; fi
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
 echo "Pre-commit checks:"
+
+# 1b. Refuse generated/build output. .gitignore already covers these, so reaching
+#     here means someone forced the add (git add -f) — which is how junk actually
+#     lands in a repo that is otherwise clean.
+STAGED_JUNK=$(echo "$STAGED_FILES" | grep -E '(^|/)(target|node_modules|dist|\.next|\.swc)/|\.flattened-pom\.xml$|\.log$|^result(-|$)' || true)
+if [ -n "$STAGED_JUNK" ]; then
+  echo "  [FAIL] no generated files staged"
+  echo
+  echo "These are build output and must not be committed:"
+  echo "$STAGED_JUNK" | sed 's/^/  /'
+  echo
+  echo "Unstage them with 'git restore --staged <file>'."
+  exit 1
+fi
+echo "  [ OK ] no generated files staged"
 
 # 2. Format ALL staged files with treefmt — the single formatter, Java included.
 #    The pinned formatter version is printed on every run (Playwright-style).
@@ -78,6 +97,26 @@ if [ -n "$STAGED_JAVA" ] || [ -n "$STAGED_FRONTEND" ]; then
     echo "Pre-commit verification failed."
     echo "Fix the violations above, or rerun with 'git commit --no-verify' to bypass."
     echo "Re-run the commit with PRE_COMMIT_VERBOSE=1 to stream tool output live."
+    exit 1
+  fi
+fi
+
+# 3b. Lint the issue tracker when issue or story files are staged. lint_issue.py is a
+#     standalone stdlib script (no external deps) that exits non-zero on any
+#     error-severity finding; rules are documented in
+#     .claude/skills/issue-tracker/references/lint-rules.md.
+#     It deliberately lints the whole 95_changes/ tree rather than just the
+#     staged files, because the cross-reference rules (dependency resolution,
+#     cycles, delivered-depends-on-undelivered) need the full issue graph.
+STAGED_TRACKER_FILES=$(echo "$STAGED_FILES" | grep -E '^95_changes/.*\.(issue|story)\.md$' || true)
+if [ -n "$STAGED_TRACKER_FILES" ]; then
+  step_issue_lint() {
+    cd "$REPO_ROOT" && python3 .claude/skills/issue-tracker/scripts/lint_issue.py 95_changes/
+  }
+  if ! run_step "issue-tracker lint" step_issue_lint; then
+    echo
+    echo "Pre-commit verification failed."
+    echo "Fix the issue-file violations above, or rerun with 'git commit --no-verify' to bypass."
     exit 1
   fi
 fi

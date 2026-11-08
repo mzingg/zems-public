@@ -1,20 +1,16 @@
 package dev.zems.lib.value;
 
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 
 /**
- * State marker for a slot whose value was once present and has since been explicitly removed — distinct from
- * {@link NullValue} (slot holds an explicit null), {@link UndefinedValue} (slot never had a value), and
- * {@link ErrorValue} (couldn't determine the value).
- *
- * <p>
- * Useful for distributed / replicated stores (CRDT tombstones for delete propagation), versioned data (audit trails:
- * "deleted at version N"), and cache invalidation flows that need to distinguish "explicitly removed" from "never set"
- * or "missed."
+ * State marker for a slot whose value was present and has been explicitly removed, as opposed to {@link NullValue}
+ * and {@link UndefinedValue}. Singleton, obtained through {@link Value#tombstone()}; every {@code TombstoneValue<?>}
+ * equals every other.
  */
 public final class TombstoneValue<T> implements Value<T> {
 
   private static final TombstoneValue<?> INSTANCE = new TombstoneValue<>();
+  private static final int SINGLETON_HASH = 4;
 
   private TombstoneValue() {}
 
@@ -29,8 +25,13 @@ public final class TombstoneValue<T> implements Value<T> {
   }
 
   @Override
+  public T unbox() {
+    throw new IllegalStateException("Cannot unbox state-marker value TombstoneValue");
+  }
+
+  @Override
   public int hashCode() {
-    return 4; // Distinct constant for singleton — Null=0, Undefined=1, Unresolved=2, (Error=3 is non-singleton), Tombstone=4
+    return SINGLETON_HASH;
   }
 
   @Override

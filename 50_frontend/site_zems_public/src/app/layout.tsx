@@ -1,14 +1,8 @@
-import type {Metadata} from 'next';
 import './globals.css';
-import {SITE_DESCRIPTION, SITE_TITLE} from '@/content/meta';
 
-// No next/font here on purpose: the page uses the system-ui font stack (parity with the static page this module
-// replaced), and a Google-font download at build time would add a network dependency to the public Pages build.
-
-export const metadata: Metadata = {
-  title: SITE_TITLE,
-  description: SITE_DESCRIPTION,
-};
+// No next/font here on purpose: the page uses the system-ui font stack, and a Google-font download at build time would
+// add a network dependency to the public Pages build.
+// No metadataBase either: with one, next turns the markdown twin's alternate link into an absolute URL.
 
 export default function RootLayout({
   children,
@@ -17,7 +11,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <footer data-testid="footer">
+          Apache License 2.0. Released versions are listed on the{' '}
+          <a href="https://github.com/mzingg/zems-public/releases">GitHub releases</a> page.
+        </footer>
+      </body>
     </html>
   );
 }

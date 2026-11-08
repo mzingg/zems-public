@@ -1,7 +1,7 @@
 package dev.zems.lib.value.builtin;
 
 import dev.zems.lib.value.Value;
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -9,16 +9,11 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * Immutable {@link SortedMap} wrapper with natural-key ordering. Distinct from {@link MapValue} (which preserves
- * insertion order via {@link java.util.LinkedHashMap}) — this value type pins natural ordering at construction so
- * iteration, first-key/last-key, and subMap views behave deterministically.
- *
- * <p>
- * Keys must implement {@link Comparable}; the compact constructor copies entries into a {@link TreeMap} with the
- * natural-ordering comparator, which surfaces a {@link ClassCastException} at construction time if any key is
- * non-comparable. The optional {@code valueDescriptor} pins the wire descriptor for the values (typically a
- * {@code TypeDescriptor.oneOf(...)}) so a sorted map with <b>heterogeneous</b> values marshals through the
- * inferred-write path; leave it {@code null} to infer a homogeneous value descriptor. Equality is by entries only.
+ * Immutable {@link SortedMap} wrapper in natural key order, whatever comparator the source carried. Keys must be
+ * {@link Comparable}; a key that is not throws {@link ClassCastException} at construction. A non-null
+ * {@code valueDescriptor} (typically a {@code TypeDescriptor.oneOf(...)}) pins the value descriptor so a map with mixed
+ * value types can be written without an explicit descriptor; when it is {@code null} the descriptor is inferred from
+ * the values. Equality is by entries only.
  */
 public record SortedMapValue<K, V>(
   SortedMap<K, Value<V>> entries,
@@ -26,9 +21,8 @@ public record SortedMapValue<K, V>(
 ) implements BuiltInValue<SortedMap<K, Value<V>>> {
   public SortedMapValue {
     Objects.requireNonNull(entries, "SortedMap must not be null");
-    // Force natural-key ordering regardless of any comparator the source carries — a TreeMap copy constructor
-    // would inherit the source's comparator. Per-entry puts into a natural-ordering TreeMap also surface a
-    // ClassCastException at construction when a key is not Comparable, as the class doc promises.
+    // The TreeMap copy constructor would inherit the source's comparator; per-entry puts into an empty TreeMap pin
+    // natural order and throw ClassCastException here for a key that is not Comparable.
     SortedMap<K, Value<V>> natural = new TreeMap<>();
     for (var entry : entries.entrySet()) {
       if (entry.getKey() == null) {
@@ -42,17 +36,11 @@ public record SortedMapValue<K, V>(
     entries = Collections.unmodifiableSortedMap(natural);
   }
 
-  /** Inferred (homogeneous) sorted map — no injected value descriptor. */
+  /** Without a value descriptor; {@link #valueType()} infers one from the values. */
   public SortedMapValue(SortedMap<K, Value<V>> entries) {
     this(entries, null);
   }
 
-  /**
-   * Returns a sorted-map-typed descriptor: the key type is inferred from the first key; the value type is the injected
-   * {@code valueDescriptor}, or — when none was injected — inferred from the values when they are homogeneous. Returns
-   * {@code null} when the map is empty, the key has no descriptor, or (without an injected descriptor) the values are
-   * heterogeneous, so the inferred write fails with a clear {@link IllegalStateException} rather than mis-marshalling.
-   */
   @Override
   @SuppressWarnings("unchecked")
   public TypeDescriptor<SortedMap<K, Value<V>>> valueType() {
@@ -72,7 +60,7 @@ public record SortedMapValue<K, V>(
       }
       for (var entry : entries.entrySet()) {
         if (!resolvedValueType.equals(entry.getValue().valueType())) {
-          return null; // heterogeneous values — fail clean on the inferred-write path
+          return null;
         }
       }
     }
@@ -81,6 +69,23 @@ public record SortedMapValue<K, V>(
       keyType,
       resolvedValueType
     );
+  }
+
+  @Override
+  public SortedMap<K, Value<V>> unbox() {
+    return entries;
+  }
+
+  /**
+   * Unboxes every entry value, one level deep, into an unmodifiable sorted map in natural key order; keys are returned
+   * as stored.
+   *
+   * @throws IllegalStateException when an entry value is a state marker
+   */
+  public SortedMap<K, V> unboxEntries() {
+    var unboxed = new TreeMap<K, V>();
+    entries.forEach((key, value) -> unboxed.put(key, value.unbox()));
+    return Collections.unmodifiableSortedMap(unboxed);
   }
 
   @Override

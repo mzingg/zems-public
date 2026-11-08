@@ -3,7 +3,7 @@ package dev.zems.lib.value;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URISyntaxException;
@@ -27,12 +27,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/**
- * Contract test for {@link ValueParsers} — the package-private parser implementations behind
- * {@code Value.<type>Of(...)} string parsers and cross-type constructors. Each row in {@link #stringParsers()} pins the
- * same five concerns (parses valid input, rejects null, rejects blank, rejects malformed, reports the expected
- * exception type) for one parser.
- */
 @ContractTest
 @DisplayName("ValueParsers")
 class ValueParsersTest {
@@ -219,8 +213,6 @@ class ValueParsersTest {
     assertThat(result.error()).get(THROWABLE).hasMessageContaining("Invalid Locale");
   }
 
-  // ============ Locale parser is special: returns "und" sentinel for unrecognised tag ============
-
   @Test
   @DisplayName("localeOf accepts valid BCP 47 tag")
   void localeAcceptsValidTag() {
@@ -236,6 +228,35 @@ class ValueParsersTest {
   }
 
   @Test
+  @DisplayName("versionOf answers the documented ErrorValue for a null dialect, null or blank text and invalid text")
+  void versionOfNeverThrows() {
+    assertThat(Value.versionOf(null, null).error()).get(THROWABLE).hasMessage("Version dialect must not be null");
+    assertThat(Value.versionOf(null, VersionDialect.SEMVER).error())
+      .get(THROWABLE)
+      .hasMessage("Version text must not be null or empty");
+    assertThat(Value.versionOf("  ", VersionDialect.JDK).error())
+      .get(THROWABLE)
+      .hasMessage("Version text must not be null or empty");
+    assertThat(Value.versionOf("1.0.0-", VersionDialect.SEMVER).error())
+      .get(THROWABLE)
+      .hasMessage("Invalid SemVer version '1.0.0-': empty identifier");
+  }
+
+  @Test
+  @DisplayName("qualifiedVersionOf answers the documented ErrorValue for null or blank text and an unknown symbol")
+  void qualifiedVersionOfNeverThrows() {
+    assertThat(Value.qualifiedVersionOf(null).error())
+      .get(THROWABLE)
+      .hasMessage("Version text must not be null or empty");
+    assertThat(Value.qualifiedVersionOf("   ").error())
+      .get(THROWABLE)
+      .hasMessage("Version text must not be null or empty");
+    assertThat(Value.qualifiedVersionOf("npm:1.0.0").error())
+      .get(THROWABLE)
+      .hasMessage("Invalid qualified version 'npm:1.0.0': expected <symbol>:<version> with symbol semver, jdk or jpms");
+  }
+
+  @Test
   @DisplayName("uuidOf(long, long) builds a UUID from bit components")
   void uuidOfLongLongBuilds() {
     UUID expected = new UUID(1L, 2L);
@@ -243,8 +264,6 @@ class ValueParsersTest {
     assertThat(result).isNotInstanceOf(ErrorValue.class);
     assertThat(result.asUuid()).hasValue(expected);
   }
-
-  // ============ Cross-type constructors (no null-input variant; some always succeed) ============
 
   @Test
   @DisplayName("timeInstantOfEpochMilli accepts any long")
@@ -383,6 +402,15 @@ class ValueParsersTest {
   }
 
   @Test
+  @DisplayName("periodOfWeeks answers an ErrorValue when the day count overflows an int")
+  void periodOfWeeksOverflow() {
+    Value<Period> result = Value.periodOfWeeks(Integer.MAX_VALUE);
+
+    assertThat(result).isEqualTo(Value.errorOf(new ArithmeticException("integer overflow"), Period.class));
+    assertThat(result.error()).get(THROWABLE).isInstanceOf(ArithmeticException.class).hasMessage("integer overflow");
+  }
+
+  @Test
   @DisplayName("bigIntegerOf(long) wraps any long")
   void bigIntegerOfLong() {
     assertThat(Value.bigIntegerOf(123L).asBigInteger()).hasValue(BigInteger.valueOf(123L));
@@ -441,15 +469,10 @@ class ValueParsersTest {
   void inetAddressOfBytes() {
     assertThat(Value.inetAddressOf(new byte[] { (byte) 192, (byte) 168, 1, 1 }).asInetAddress()).isPresent();
     assertThat(Value.inetAddressOf((byte[]) null)).isInstanceOf(ErrorValue.class);
-    // wrong length triggers UnknownHostException
-    assertThat(Value.inetAddressOf(new byte[] { 1, 2, 3 })).isInstanceOf(ErrorValue.class);
+    byte[] wrongLengthAddress = { 1, 2, 3 };
+    assertThat(Value.inetAddressOf(wrongLengthAddress)).isInstanceOf(ErrorValue.class);
   }
 
-  /**
-   * One row per string parser. {@code parser} is the {@code Value.<type>Of(String)} reference; {@code valid} is a
-   * parseable input; {@code invalid} is malformed input; {@code exceptionType} is the throwable wrapped on malformed
-   * input; {@code blankErrorMessage} is the documented "must not be null or blank" message.
-   */
   record StringParserCase<T>(
     String label,
     Function<String, Value<T>> parser,

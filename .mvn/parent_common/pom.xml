@@ -2,8 +2,7 @@
 <project
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns="http://maven.apache.org/POM/4.0.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
->
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
 
@@ -31,5 +30,22 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
+
+  <profiles>
+    <!-- jdtls (the Eclipse JDT Language Server behind the jdtls-lsp plugin) imports the projects through m2e, which sets
+         m2e.version on every Maven request. Its compiler then writes to target-ide/ instead of Maven's target/: when its
+         view of a sibling module is broken it writes stub classes, and Maven would trust them as up to date. -->
+    <profile>
+      <id>ide-output</id>
+      <activation>
+        <property>
+          <name>m2e.version</name>
+        </property>
+      </activation>
+      <build>
+        <directory>${project.basedir}/target-ide</directory>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

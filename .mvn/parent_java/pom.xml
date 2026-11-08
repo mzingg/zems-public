@@ -2,8 +2,7 @@
 <project
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns="http://maven.apache.org/POM/4.0.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
->
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
 
@@ -22,11 +21,10 @@
 
   <properties>
     <maven.compiler.release>25</maven.compiler.release>
-    <zems.checkstyle.config
-    >${maven.multiModuleProjectDirectory}/.mvn/parent_java/checkstyle.xml</zems.checkstyle.config>
+    <zems.checkstyle.config>${maven.multiModuleProjectDirectory}/.mvn/parent_java/checkstyle.xml</zems.checkstyle.config>
     <zems.pmd.config>${maven.multiModuleProjectDirectory}/.mvn/parent_java/pmd-ruleset.xml</zems.pmd.config>
-    <junit.version>6.1.0</junit.version>
-    <mockito.version>5.23.0</mockito.version>
+    <junit.version>6.1.3</junit.version>
+    <mockito.version>5.24.0</mockito.version>
     <!-- JMH (Java Microbenchmark Harness): only the quality-tier value_benchmark module uses it. -->
     <jmh.version>1.37</jmh.version>
     <!-- libGDX + VisUI: the autocracy_libgdx desktop frontend (the chosen world renderer). libGDX pulls LWJGL 3.3.x
@@ -40,8 +38,7 @@
       <!--
         Internal reactor modules: versions are managed once here so module POMs declare
         groupId + artifactId only (Maven 3 needs a version on every dependency; the Maven 4
-        reactor used to infer it). depMgmt matches on type too, so the test-jar rows are
-        separate entries. ${revision} is resolved in the published POM by flatten.
+        reactor used to infer it). ${revision} is resolved in the published POM by flatten.
       -->
       <dependency>
         <groupId>dev.zems.lib</groupId>
@@ -50,20 +47,8 @@
       </dependency>
       <dependency>
         <groupId>dev.zems.lib</groupId>
-        <artifactId>common</artifactId>
-        <version>${revision}</version>
-        <type>test-jar</type>
-      </dependency>
-      <dependency>
-        <groupId>dev.zems.lib</groupId>
         <artifactId>value</artifactId>
         <version>${revision}</version>
-      </dependency>
-      <dependency>
-        <groupId>dev.zems.lib</groupId>
-        <artifactId>value</artifactId>
-        <version>${revision}</version>
-        <type>test-jar</type>
       </dependency>
       <dependency>
         <groupId>dev.zems.lib</groupId>
@@ -86,21 +71,14 @@
         <version>${revision}</version>
       </dependency>
       <dependency>
-        <groupId>org.junit</groupId>
-        <artifactId>junit-bom</artifactId>
-        <version>${junit.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>2.22.0</version>
+        <version>2.22.4</version>
       </dependency>
       <dependency>
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
-        <version>4.2.1</version>
+        <version>4.4.8</version>
       </dependency>
       <dependency>
         <groupId>org.openjdk.jmh</groupId>
@@ -134,6 +112,31 @@
         <artifactId>vis-ui</artifactId>
         <version>${visui.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>4.0.0-M1</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-junit-jupiter</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -151,19 +154,16 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>4.0.0-M1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -191,6 +191,7 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <useModulePath>false</useModulePath>
           <includes>
             <include>**/*Test.java</include>
           </includes>
@@ -223,7 +224,7 @@
             <dependency>
               <groupId>com.puppycrawl.tools</groupId>
               <artifactId>checkstyle</artifactId>
-              <version>13.6.0</version>
+              <version>14.3.0</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -241,12 +242,12 @@
             <dependency>
               <groupId>net.sourceforge.pmd</groupId>
               <artifactId>pmd-core</artifactId>
-              <version>7.25.0</version>
+              <version>7.28.0</version>
             </dependency>
             <dependency>
               <groupId>net.sourceforge.pmd</groupId>
               <artifactId>pmd-java</artifactId>
-              <version>7.25.0</version>
+              <version>7.28.0</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -281,7 +282,7 @@
         <plugin>
           <groupId>org.owasp</groupId>
           <artifactId>dependency-check-maven</artifactId>
-          <version>12.2.2</version>
+          <version>13.0.0</version>
           <configuration>
             <!-- NVD cache lives outside the local repo so it survives
                  ~/.m2 wipes and is shared across module checkouts. -->
@@ -309,13 +310,13 @@
                  entry must explain WHY the dependency is not actually
                  affected; see file header. -->
             <suppressionFiles>
-              <suppressionFile
-              >${maven.multiModuleProjectDirectory}/.mvn/parent_java/owasp-suppressions.xml</suppressionFile>
+              <suppressionFile>${maven.multiModuleProjectDirectory}/.mvn/parent_java/owasp-suppressions.xml</suppressionFile>
             </suppressionFiles>
           </configuration>
           <executions>
+            <!-- Off by default; the hygiene, releaseGate and promoteGate profiles below opt in with their own executions. -->
             <execution>
-              <id>commit-gate-dependency-check</id>
+              <id>dependency-check-default-off</id>
               <phase>none</phase>
               <goals>
                 <goal>check</goal>
@@ -360,19 +361,8 @@
               </execution>
             </executions>
           </plugin>
-<!--          <plugin>-->
-<!--            <groupId>org.owasp</groupId>-->
-<!--            <artifactId>dependency-check-maven</artifactId>-->
-<!--            <executions>-->
-<!--              <execution>-->
-<!--                <id>commit-gate-dependency-check</id>-->
-<!--                <phase>verify</phase>-->
-<!--                <goals>-->
-<!--                  <goal>check</goal>-->
-<!--                </goals>-->
-<!--              </execution>-->
-<!--            </executions>-->
-<!--          </plugin>-->
+          <!-- OWASP dependency-check is deliberately NOT here: an NVD-backed scan on every commit is too slow
+               for the commit path. It runs in the hygiene, releaseGate and promoteGate profiles instead. -->
         </plugins>
       </build>
     </profile>
@@ -411,27 +401,32 @@
               </execution>
             </executions>
           </plugin>
-<!--          <plugin>-->
-<!--            <groupId>org.owasp</groupId>-->
-<!--            <artifactId>dependency-check-maven</artifactId>-->
-<!--            <executions>-->
-<!--              <execution>-->
-<!--                <id>release-gate-dependency-check</id>-->
-<!--                <phase>verify</phase>-->
-<!--                <goals>-->
-<!--                  <goal>check</goal>-->
-<!--                </goals>-->
-<!--              </execution>-->
-<!--            </executions>-->
-<!--          </plugin>-->
+          <!-- OWASP dependency-check: a release must not ship a known advisory. The monorepo CI (build.yml) passes
+               NVD_API_KEY and keeps the NVD data in the Actions cache; locally the key comes from
+               .nix/env.local.conf. The public mirror's workflows run this profile with -Ddependency-check.skip=true:
+               its source was scanned by the promote gate before it left the monorepo. -->
+          <plugin>
+            <groupId>org.owasp</groupId>
+            <artifactId>dependency-check-maven</artifactId>
+            <executions>
+              <execution>
+                <id>release-gate-dependency-check</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
       </build>
     </profile>
     <!-- Promote gate: the monorepo-side check the promote tooling (80_ops/promote/promote.sh) runs on the marked
          public module set before assembling and pushing the public mirror (zems-public). Kept as a separate profile
          from commitGate/releaseGate so it can diverge later (e.g. assert each public module carries the metadata
-         Maven Central requires, or that the public build closure is self-contained). For now it runs the same
-         checkstyle + PMD, then tests via the verify lifecycle. Activate explicitly:
+         Maven Central requires, or that the public build closure is self-contained). It runs the same checkstyle +
+         PMD, then tests via the verify lifecycle, plus OWASP dependency-check: a known advisory must not reach the
+         public mirror. Activate explicitly:
            mvn -PpromoteGate verify -->
     <profile>
       <id>promoteGate</id>
@@ -455,6 +450,95 @@
               <execution>
                 <id>promote-gate-pmd</id>
                 <phase>generate-resources</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.owasp</groupId>
+            <artifactId>dependency-check-maven</artifactId>
+            <executions>
+              <execution>
+                <id>promote-gate-dependency-check</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <!-- Hygiene gate: deterministic repo-health checks that are too slow for the commit path but must not rot
+         unnoticed. Deliberately separate from commitGate so every commit stays fast; run on demand and in CI.
+         Activate explicitly:
+           mvn -Phygiene verify -->
+    <profile>
+      <id>hygiene</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <configuration>
+              <!-- Relax doclint's "missing" group (no @param / @return / comment) so trivial documentation gaps do
+                   not fail the build, matching the public release profile in 80_ops/promote/overlay/pom.xml. Real
+                   javadoc errors (broken @link, malformed HTML, bad references) stay fatal. -->
+              <doclint>all,-missing</doclint>
+              <failOnError>true</failOnError>
+              <!-- Sibling-module apidocs links are derived from the inherited POM <url>, which in this monorepo
+                   resolves through the .mvn/parent_* chain and yields URLs that do not exist. The public mirror
+                   has a different parent chain and is unaffected, so this is switched off here only. -->
+              <detectOfflineLinks>false</detectOfflineLinks>
+            </configuration>
+            <executions>
+              <execution>
+                <id>hygiene-javadoc</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>javadoc</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>hygiene-enforce</id>
+                <phase>validate</phase>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <!-- One version per artifact across the whole graph: diverging transitive versions are
+                         resolved by Maven's "nearest wins", which silently picks a version nobody chose. -->
+                    <dependencyConvergence />
+                    <!-- The same groupId:artifactId declared twice in one POM — the later one silently wins. -->
+                    <banDuplicatePomDependencyVersions />
+                    <!-- No third-party SNAPSHOTs. Our own modules carry the ${revision} dev sentinel and are
+                         excluded; see the "Versioning" note in the repo CLAUDE.md. -->
+                    <requireReleaseDeps>
+                      <excludes>
+                        <exclude>dev.zems:*</exclude>
+                        <exclude>dev.zems.lib:*</exclude>
+                      </excludes>
+                    </requireReleaseDeps>
+                  </rules>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.owasp</groupId>
+            <artifactId>dependency-check-maven</artifactId>
+            <executions>
+              <execution>
+                <id>hygiene-dependency-check</id>
+                <phase>verify</phase>
                 <goals>
                   <goal>check</goal>
                 </goals>

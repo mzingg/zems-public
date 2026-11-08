@@ -3,7 +3,7 @@ package dev.zems.lib.value.builtin;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import dev.zems.lib.value.ErrorValue;
 import dev.zems.lib.value.Value;
 import java.net.URI;

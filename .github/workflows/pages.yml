@@ -2,13 +2,20 @@ name: Deploy GitHub Pages
 
 # Serves the project website (zems.dev) from this public repo. The site is a next.js static export authored in the
 # upstream monorepo under 50_frontend/site_zems_public and lands here as source via promote; this workflow builds
-# the export and deploys it to GitHub Pages. Every promote stamps the release version into the site's version
-# content file, so every release redeploys the site with the version it shipped with.
+# the export and deploys it to GitHub Pages. The site renders the repo markdown (README.md, docs/, and the README.md
+# and docs/ of every library whose POM is marked public), so a change to any of those paths redeploys it. Every
+# promote stamps the release version into the library setup pages, so every release redeploys the site with the
+# version it shipped with.
 on:
   push:
     branches: ['main']
     paths:
       - '50_frontend/site_zems_public/**'
+      - 'README.md'
+      - 'docs/**'
+      - '10_lib/*/README.md'
+      - '10_lib/*/docs/**'
+      - '10_lib/*/pom.xml'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 

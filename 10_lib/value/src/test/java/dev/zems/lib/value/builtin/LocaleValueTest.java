@@ -3,7 +3,7 @@ package dev.zems.lib.value.builtin;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import dev.zems.lib.value.ErrorValue;
 import dev.zems.lib.value.Value;
 import java.util.Locale;
@@ -64,7 +64,6 @@ class LocaleValueTest {
     @Test
     void falseForRealAndPrivateUseLocales() {
       assertThat(LocaleValue.isUndetermined(SAMPLE)).isFalse();
-      // Private-use tags carry information, so "und-x-foo" is a determined locale.
       assertThat(LocaleValue.isUndetermined(Locale.forLanguageTag("und-x-foo"))).isFalse();
     }
   }

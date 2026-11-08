@@ -2,7 +2,7 @@ package dev.zems.lib.value;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import java.net.URISyntaxException;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;

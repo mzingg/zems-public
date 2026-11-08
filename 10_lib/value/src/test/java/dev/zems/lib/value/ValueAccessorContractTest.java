@@ -1,8 +1,9 @@
 package dev.zems.lib.value;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -29,13 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/**
- * Contract test for the {@link Value} interface — focuses on the broad surface of type-check ({@code is*()}) and
- * accessor ({@code as*()}) methods that route through pattern matching. Existing focused tests (ValueScalarAccessorTest
- * / ValueNumericAccessorTest / ValueCollectionAccessorTest / ValueErrorFactoriesTest) cover the
- * scalar/numeric/collection subset; this file fills the gaps for temporal types, JDK reference types, and the rest of
- * the dispatch surface.
- */
 @ContractTest
 @DisplayName("Value accessor contract")
 class ValueAccessorContractTest {
@@ -156,7 +150,8 @@ class ValueAccessorContractTest {
         Value::asDuration,
         Duration.ofSeconds(60)
       ),
-      new AccessorCase<>("Period", Value.of(Period.of(1, 2, 3)), Value::isPeriod, Value::asPeriod, Period.of(1, 2, 3))
+      new AccessorCase<>("Period", Value.of(Period.of(1, 2, 3)), Value::isPeriod, Value::asPeriod, Period.of(1, 2, 3)),
+      new AccessorCase<>("Enum", Value.of(Status.ACTIVE), Value::isEnum, Value::asEnum, Status.ACTIVE)
     );
   }
 
@@ -198,24 +193,49 @@ class ValueAccessorContractTest {
   }
 
   @Test
-  @DisplayName("asNumber() returns Number for any primitive numeric wrapper")
-  void asNumberWorksForAllNumerics() {
-    assertThat(Value.of(42).asNumber()).hasValue(42);
-    assertThat(Value.of(99L).asNumber()).hasValue(99L);
-    assertThat(Value.of(3.14).asNumber()).hasValue(3.14);
-    assertThat(Value.of(2.5f).asNumber()).hasValue(2.5f);
-    assertThat(Value.of((short) 7).asNumber()).hasValue((short) 7);
-    assertThat(Value.of((byte) 9).asNumber()).hasValue((byte) 9);
+  @DisplayName("isTypeName/asTypeName single out a type name among ordinary text and state markers")
+  void typeNameProbeAndAccessor() {
+    Value<TypeName> typeName = Value.typeOf("com.example.Person");
+    assertThat(typeName.isTypeName()).isTrue();
+    assertThat(typeName.asTypeName()).hasValue("com.example.Person");
+
+    Value<String> text = Value.of("com.example.Person");
+    assertThat(text.isTypeName()).isFalse();
+    assertThat(text.asTypeName()).isEmpty();
+
+    assertThat(Value.nullValue().asTypeName()).isEmpty();
+    assertThat(Value.undefined().asTypeName()).isEmpty();
+    assertThat(Value.unresolved().asTypeName()).isEmpty();
+    assertThat(Value.nullValue().isTypeName()).isFalse();
   }
 
-  // ============ asNumber: any of the 6 primitive numeric wrappers returns a Number ============
+  @Test
+  @DisplayName("asEnum(Class) answers the constant only for its own enum class")
+  void asEnumOfClassMatchesOnlyTheDeclaringEnum() {
+    Value<Status> status = Value.of(Status.ACTIVE);
+    assertThat(status.asEnum(Status.class)).hasValue(Status.ACTIVE);
+    assertThat(status.asEnum(Colour.class)).isEmpty();
+
+    Value<String> text = Value.of("ACTIVE");
+    assertThat(text.isEnum()).isFalse();
+    assertThat(text.asEnum(Status.class)).isEmpty();
+
+    assertThat(Value.nullValue().asEnum(Status.class)).isEmpty();
+    assertThat(Value.undefined().asEnum(Status.class)).isEmpty();
+    assertThat(Value.unresolved().asEnum(Status.class)).isEmpty();
+    assertThat(Value.errorMessage("err", Status.class).asEnum(Status.class)).isEmpty();
+    assertThat(Value.unsupported("no conversion exists", Status.class).asEnum(Status.class)).isEmpty();
+    assertThat(Value.tombstone().asEnum(Status.class)).isEmpty();
+    assertThat(Value.errorMessage("err", Status.class).isEnum()).isFalse();
+  }
 
   @Test
-  @DisplayName("asNumber() returns Optional.empty() for non-numeric wrappers")
-  void asNumberEmptyForNonNumerics() {
-    assertThat(Value.of("not a number").asNumber()).isEmpty();
-    assertThat(Value.of(true).asNumber()).isEmpty();
-    assertThat(Value.nullValue().asNumber()).isEmpty();
+  @DisplayName("asEnum(null) is a caller bug and throws IllegalArgumentException")
+  void asEnumOfNullClassThrows() {
+    Value<Status> status = Value.of(Status.ACTIVE);
+    assertThatThrownBy(() -> status.asEnum((Class<Status>) null))
+      .isInstanceOf(IllegalArgumentException.class)
+      .hasMessage("type must not be null");
   }
 
   @Test
@@ -224,8 +244,6 @@ class ValueAccessorContractTest {
     Value<?> map = Value.mapOf(java.util.Map.entry("a", 1), java.util.Map.entry("b", 2));
     assertThat(map.isMapOf(String.class, Integer.class)).isTrue();
   }
-
-  // ============ isMapOf: complement of isListOf ============
 
   @Test
   @DisplayName("isMapOf returns false when key type differs")
@@ -264,8 +282,6 @@ class ValueAccessorContractTest {
       .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LIST)
       .containsExactly(Value.of("a"), Value.of("b"));
   }
-
-  // ============ asList / asMap raw access ============
 
   @Test
   @DisplayName("asList() returns Optional.empty() for non-list wrappers")
@@ -306,9 +322,6 @@ class ValueAccessorContractTest {
     assertThat(err.error()).isPresent();
   }
 
-  // ============ State predicates on state markers ============
-
-  /** Each row: a positive-case sample of one type plus a probe + asAccessor + expected raw. */
   record AccessorCase<T>(
     String label,
     Value<T> sample,
@@ -320,5 +333,13 @@ class ValueAccessorContractTest {
     public String toString() {
       return label;
     }
+  }
+
+  enum Status {
+    ACTIVE,
+  }
+
+  enum Colour {
+    ACTIVE,
   }
 }

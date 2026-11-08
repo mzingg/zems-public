@@ -8,5 +8,8 @@
   "semi": true,
   "singleQuote": true,
   "bracketSpacing": false,
-  "overrides": [{"files": "*.java", "options": {"parser": "java"}}]
+  "overrides": [
+    {"files": "*.java", "options": {"parser": "java"}},
+    {"files": "*.xml", "options": {"bracketSameLine": true}}
+  ]
 }

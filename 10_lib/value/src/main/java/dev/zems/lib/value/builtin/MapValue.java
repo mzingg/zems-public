@@ -1,17 +1,17 @@
 package dev.zems.lib.value.builtin;
 
 import dev.zems.lib.value.Value;
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Immutable {@link Map} wrapper. The optional {@code valueDescriptor} pins the wire descriptor for the map values
- * (typically a {@code TypeDescriptor.oneOf(...)}) so a map with <b>heterogeneous</b> values marshals through the
- * inferred-write path; leave it {@code null} to infer a homogeneous value descriptor. The key descriptor is always
- * inferred from the runtime key class. Equality is by entries only — the descriptor is marshalling metadata.
+ * Immutable {@link Map} wrapper that keeps the source's iteration order. A non-null {@code valueDescriptor} (typically
+ * a {@code TypeDescriptor.oneOf(...)}) pins the value descriptor so a map with mixed value types can be written without
+ * an explicit descriptor; when it is {@code null} the descriptor is inferred from the values. The key descriptor is
+ * always inferred from the key class. Equality is by entries only.
  */
 public record MapValue<K, V>(
   Map<K, Value<V>> entries,
@@ -27,23 +27,16 @@ public record MapValue<K, V>(
         throw new IllegalArgumentException("Map values must not be null - use Value.nullValue() instead");
       }
     }
-    // Snapshot into a LinkedHashMap so iteration order is the source's order (Map.copyOf would discard it,
-    // making the wire bytes non-deterministic and breaking FRAMED checksums / golden fixtures).
+    // Map.copyOf would drop the source's iteration order and make the wire bytes non-deterministic, which breaks
+    // FRAMED checksums and golden fixtures.
     entries = Collections.unmodifiableMap(new LinkedHashMap<>(entries));
   }
 
-  /** Inferred (homogeneous) map — no injected value descriptor. */
+  /** Without a value descriptor; {@link #valueType()} infers one from the values. */
   public MapValue(Map<K, Value<V>> entries) {
     this(entries, null);
   }
 
-  /**
-   * Returns a map-typed descriptor: the key type is inferred from the first key via {@link TypeDescriptor#find(Class)};
-   * the value type is the injected {@code valueDescriptor}, or — when none was injected — inferred from the values when
-   * they are homogeneous. Returns {@code null} when the map is empty, the key has no descriptor, or (without an injected
-   * descriptor) the values are heterogeneous, so the inferred write fails with a clear {@link IllegalStateException}
-   * rather than mis-marshalling.
-   */
   @Override
   @SuppressWarnings("unchecked")
   public TypeDescriptor<Map<K, Value<V>>> valueType() {
@@ -63,7 +56,7 @@ public record MapValue<K, V>(
       }
       for (var entry : entries.entrySet()) {
         if (!resolvedValueType.equals(entry.getValue().valueType())) {
-          return null; // heterogeneous values — fail clean on the inferred-write path
+          return null;
         }
       }
     }
@@ -72,6 +65,23 @@ public record MapValue<K, V>(
       keyType,
       resolvedValueType
     );
+  }
+
+  @Override
+  public Map<K, Value<V>> unbox() {
+    return entries;
+  }
+
+  /**
+   * Unboxes every entry value, one level deep, into an unmodifiable map in insertion order; keys are returned as
+   * stored.
+   *
+   * @throws IllegalStateException when an entry value is a state marker
+   */
+  public Map<K, V> unboxEntries() {
+    var unboxed = new LinkedHashMap<K, V>();
+    entries.forEach((key, value) -> unboxed.put(key, value.unbox()));
+    return Collections.unmodifiableMap(unboxed);
   }
 
   @Override

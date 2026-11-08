@@ -2,8 +2,7 @@
 <project
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xmlns="http://maven.apache.org/POM/4.0.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
->
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
 
@@ -18,8 +17,7 @@
   <artifactId>value</artifactId>
 
   <name>ZEMS (lib) | Value</name>
-  <description
-  >Immutable value types with explicit state and a wire-format-agnostic marshalling API. Zero runtime dependencies.</description>
+  <description>Immutable value types for Java, built to become value classes when Project Valhalla lands. Each value carries its own state, such as null or an error, so bad input does not throw where it is parsed: it travels with the data and is handled where it is used.</description>
 
   <properties>
     <!-- Marks this module for the public mirror (zems-public). The promote tooling in 80_ops/promote copies every
@@ -28,16 +26,27 @@
   </properties>
 
   <dependencies>
-    <!--
-      Shared @ContractTest/@JourneyTest annotations + AllocationMeasurement helper ship from
-      10_lib/common's tests classifier. Test-scope only.
-    -->
+    <!-- @ContractTest / @JourneyTest (dev.zems.lib.common.junit). -->
     <dependency>
       <groupId>dev.zems.lib</groupId>
       <artifactId>common</artifactId>
-      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
+
+    <!-- Needed only by the dev.zems.lib.value.junit test helpers; optional, so consumers bring their own. -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <scope>compile</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>compile</scope>
+      <optional>true</optional>
+    </dependency>
+
     <!--
       jackson-dataformat-cbor is a test-only ecosystem-parity gate. Our binary wire is CBOR
       (RFC 8949); the Jackson CBOR codec is the most-deployed Java CBOR implementation, so
@@ -47,46 +56,9 @@
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-cbor</artifactId>
-      <version>2.22.0</version>
+      <version>2.22.4</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <!--
-        Publish a `tests` classifier JAR alongside the main artifact so downstream modules can
-        depend on the round-trip harness, contract-test annotations, and other shared test
-        helpers via `<dependency><type>test-jar</type><scope>test</scope></dependency>`.
-        Mirrors the Jackson/Guava/Spring convention of shipping reusable test utilities under
-        a `tests` classifier rather than spinning up a separate `*-testing` module.
-      -->
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>publish-test-jar</id>
-            <phase>package</phase>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-            <configuration>
-              <!--
-                Restrict the test-jar contents to the published harness/annotations. Without
-                this every test class would be shipped, polluting downstream classpaths.
-              -->
-              <includes>
-                <include>dev/zems/lib/value/marshal/RoundTripFormatHarness*.class</include>
-                <!-- Value-aware AssertJ assertions (entry point + assertion class). Exact names so the
-                     ValueAssertTest class is not shipped. -->
-                <include>dev/zems/lib/value/ValueAssert.class</include>
-                <include>dev/zems/lib/value/ValueAssertions.class</include>
-              </includes>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 
 </project>

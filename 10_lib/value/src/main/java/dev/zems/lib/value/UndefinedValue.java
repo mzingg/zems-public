@@ -1,25 +1,15 @@
 package dev.zems.lib.value;
 
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 
 /**
- * State marker for a slot that has no value at all — distinct from {@link NullValue} (slot holds an explicit null),
- * {@link UnresolvedValue} (value exists but has not been computed or fetched yet), {@link TombstoneValue} (value was
- * deliberately removed), and {@link ErrorValue} (production of the value failed).
- *
- * <p>
- * The distinction from {@code NullValue} is load-bearing: in tree node attributes, configuration overlays, and
- * patch/merge flows, "I explicitly chose null" and "no value was ever supplied" must produce different downstream
- * behaviour. {@code UndefinedValue} carries the "absent" case without collapsing it into {@code null}.
- *
- * <p>
- * Singleton; obtain via {@link Value#undefined()}. Equality is type-based — every {@code UndefinedValue<?>} equals
- * every other regardless of the type parameter, which exists only for pattern-matching compatibility in the sealed
- * {@link Value} hierarchy.
+ * State marker for a slot that has no value at all, as opposed to {@link NullValue} for an explicit null. Singleton,
+ * obtained through {@link Value#undefined()}; every {@code UndefinedValue<?>} equals every other.
  */
 public final class UndefinedValue<T> implements Value<T> {
 
   private static final UndefinedValue<?> INSTANCE = new UndefinedValue<>();
+  private static final int SINGLETON_HASH = 1;
 
   private UndefinedValue() {}
 
@@ -34,8 +24,13 @@ public final class UndefinedValue<T> implements Value<T> {
   }
 
   @Override
+  public T unbox() {
+    throw new IllegalStateException("Cannot unbox state-marker value UndefinedValue");
+  }
+
+  @Override
   public int hashCode() {
-    return 1; // Distinct constant for singleton - NullValue=0, UndefinedValue=1, UnresolvedValue=2
+    return SINGLETON_HASH;
   }
 
   @Override

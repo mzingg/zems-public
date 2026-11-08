@@ -2,7 +2,7 @@ package dev.zems.lib.value.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import dev.zems.lib.value.Value;
 import dev.zems.lib.value.builtin.BooleanValue;
 import dev.zems.lib.value.builtin.ByteValue;
@@ -90,7 +90,6 @@ class ValueCacheContractTest {
     @Test
     void unboundedHitsAnyInt() {
       var cache = new ValueCache(ValueCachePolicy.UNBOUNDED);
-      // Values inside the pre-allocated range and a few well past it both hit.
       assertThat(cache.cached(0)).isSameAs(cache.cached(0));
       assertThat(cache.cached(1_500_000)).isSameAs(cache.cached(1_500_000));
       assertThat(cache.cached(Integer.MAX_VALUE)).isSameAs(cache.cached(Integer.MAX_VALUE));
@@ -99,8 +98,6 @@ class ValueCacheContractTest {
 
     @Test
     void valueOfDelegatesThroughCache() {
-      // Default policy covers small ints; both Value.of and the direct cache lookup return the
-      // same singleton.
       assertThat(Value.of(42)).isSameAs(Value.of(42));
     }
   }
@@ -127,8 +124,6 @@ class ValueCacheContractTest {
 
     @Test
     void unboundedHitsAnyLongInPolicyBound() {
-      // longMax is an int field, so the bound is [-(intMax+1), intMax]. Any long outside that
-      // misses, even under "unbounded" — by design, since the policy uses int half-range.
       var cache = new ValueCache(ValueCachePolicy.UNBOUNDED);
       assertThat(cache.cached((long) Integer.MAX_VALUE)).isSameAs(cache.cached((long) Integer.MAX_VALUE));
       assertThat(cache.cached((long) Integer.MIN_VALUE)).isSameAs(cache.cached((long) Integer.MIN_VALUE));
@@ -160,8 +155,8 @@ class ValueCacheContractTest {
       StringValue first = cache.cached("a");
       cache.cached("b");
       cache.cached("c");
-      cache.cached("d"); // size > 3 → evicts "a"
-      assertThat(cache.cached("a")).isNotSameAs(first); // re-inserted, fresh instance
+      cache.cached("d");
+      assertThat(cache.cached("a")).isNotSameAs(first);
     }
 
     @Test
@@ -170,8 +165,8 @@ class ValueCacheContractTest {
       StringValue first = cache.cached("a");
       cache.cached("b");
       cache.cached("c");
-      cache.cached("a"); // touch — "a" moves to most-recent, "b" becomes eldest
-      cache.cached("d"); // evicts "b", not "a"
+      cache.cached("a");
+      cache.cached("d");
       assertThat(cache.cached("a")).isSameAs(first);
     }
 

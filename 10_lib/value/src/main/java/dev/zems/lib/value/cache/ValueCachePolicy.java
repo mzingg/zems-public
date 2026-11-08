@@ -4,36 +4,15 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Immutable configuration for {@link ValueCache}. Controls the per-type bounds of the optional caches (int, long,
- * string). The mandatory caches — {@code BooleanValue}, {@code ByteValue}, {@code ShortValue}, and the empty-collection
- * singletons — are not configurable: their full domains are tiny, and the hit rate is 100 % by definition.
+ * Immutable configuration for {@link ValueCache}: the bounds of the optional int, long and string caches. A preset is
+ * selected through the {@code zems.value.cache.mode} system property and single bounds are overridden through the
+ * per-type properties; see {@link #fromSystemProperties()}.
  *
- * <p>
- * Five presets are exposed as constants and selectable via the {@code zems.value.cache.mode} VM property. Individual
- * bounds can be overridden via per-type VM properties; see {@link #fromSystemProperties()} for the property names.
- *
- * <pre>
- * | Preset       | int.max           | long.max          | string.max | stringIsUnbounded |
- * |--------------|-------------------|-------------------|------------|-------------------|
- * | DEFAULT      | 32_767            | 32_767            | 1024       | false             |
- * | AGGRESSIVE   | 32_767            | 32_767            | 8192       | false             |
- * | MINIMAL      | 0                 | 0                 | 0          | false             |
- * | DISABLED     | 0                 | 0                 | 0          | false             |
- * | UNBOUNDED    | Integer.MAX_VALUE | Integer.MAX_VALUE | 0          | true              |
- * </pre>
- *
- * <p>
- * {@code MINIMAL} and {@code DISABLED} are functionally identical; the two names express different intents (minimum
- * optional caching vs. opting out of optional caching).
- *
- * @param intMax            half-range bound for the {@code IntegerValue} cache (range is {@code -(intMax+1)..intMax})
- * @param longMax           half-range bound for the {@code LongValue} cache (range is {@code -(longMax+1)..longMax});
- *                          stored as {@code int} since arrays cannot exceed {@link Integer#MAX_VALUE} entries anyway
- * @param stringMax         bounded LRU capacity for the {@code StringValue} cache; {@code 0} disables. Ignored when
- *                          {@code stringIsUnbounded} is {@code true} (and must then be {@code 0}).
- * @param stringIsUnbounded {@code true} switches the {@code StringValue} cache to a lock-free
- *                          {@link java.util.concurrent.ConcurrentHashMap} with no eviction. {@code false} uses the
- *                          bounded LRU (or disables it when {@code stringMax == 0}).
+ * @param intMax the {@code IntegerValue} cache covers {@code -(intMax+1)..intMax}
+ * @param longMax the {@code LongValue} cache covers {@code -(longMax+1)..longMax}
+ * @param stringMax capacity of the bounded LRU {@code StringValue} cache; {@code 0} disables it, and it must be
+ *     {@code 0} when {@code stringIsUnbounded} is {@code true}
+ * @param stringIsUnbounded {@code true} caches every string with no eviction
  */
 public record ValueCachePolicy(int intMax, int longMax, int stringMax, boolean stringIsUnbounded) {
   public static final ValueCachePolicy DEFAULT = new ValueCachePolicy(32_767, 32_767, 1024, false);
@@ -67,17 +46,14 @@ public record ValueCachePolicy(int intMax, int longMax, int stringMax, boolean s
   }
 
   /**
-   * Build a policy from {@link System#getProperty(String)}. All properties are optional; absent properties fall back to
-   * the preset selected by {@code zems.value.cache.mode} (default: {@link #DEFAULT}).
+   * Builds a policy from the system properties. Every property is optional; an absent one falls back to the preset
+   * named by {@code zems.value.cache.mode}, which itself defaults to {@link #DEFAULT}.
    */
   public static ValueCachePolicy fromSystemProperties() {
     return parse(System::getProperty);
   }
 
-  /**
-   * Build a policy from a property map. Used directly by tests; the {@link #fromSystemProperties()} factory is a thin
-   * wrapper around this with {@code System::getProperty}.
-   */
+  /** Builds a policy from {@code properties} by the same rules as {@link #fromSystemProperties()}. */
   public static ValueCachePolicy parse(Map<String, String> properties) {
     return parse(properties::get);
   }

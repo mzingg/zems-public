@@ -2,7 +2,7 @@ package dev.zems.lib.value;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import dev.zems.lib.common._test.ContractTest;
+import dev.zems.lib.common.junit.ContractTest;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -21,9 +21,10 @@ class ValueStateChecksContractTest {
   private static final Value<String> UNRESOLVED = Value.unresolved();
   private static final Value<String> ERROR = Value.errorMessage("boom", String.class);
   private static final Value<String> TOMBSTONE = Value.tombstone();
+  private static final Value<String> UNSUPPORTED = Value.unsupported("no conversion exists", String.class);
   private static final Value<String> PRESENT = Value.of("hello");
 
-  private static final List<Value<?>> ALL_MARKERS = List.of(NULL, UNDEFINED, UNRESOLVED, ERROR, TOMBSTONE);
+  private static final List<Value<?>> ALL_MARKERS = List.of(NULL, UNDEFINED, UNRESOLVED, ERROR, TOMBSTONE, UNSUPPORTED);
 
   @Nested
   @DisplayName("Per-marker predicates")
@@ -33,7 +34,7 @@ class ValueStateChecksContractTest {
     void isNullTrueOnlyForNullValue() {
       assertThat(NULL.isNull()).isTrue();
       assertThat(NULL.isNotNull()).isFalse();
-      Stream.of(UNDEFINED, UNRESOLVED, ERROR, TOMBSTONE, PRESENT).forEach(v -> {
+      Stream.of(UNDEFINED, UNRESOLVED, ERROR, TOMBSTONE, UNSUPPORTED, PRESENT).forEach(v -> {
         assertThat(v.isNull()).as("%s.isNull", v).isFalse();
         assertThat(v.isNotNull()).as("%s.isNotNull", v).isTrue();
       });
@@ -43,7 +44,7 @@ class ValueStateChecksContractTest {
     void isUndefinedTrueOnlyForUndefinedValue() {
       assertThat(UNDEFINED.isUndefined()).isTrue();
       assertThat(UNDEFINED.isDefined()).isFalse();
-      Stream.of(NULL, UNRESOLVED, ERROR, TOMBSTONE, PRESENT).forEach(v -> {
+      Stream.of(NULL, UNRESOLVED, ERROR, TOMBSTONE, UNSUPPORTED, PRESENT).forEach(v -> {
         assertThat(v.isUndefined()).as("%s.isUndefined", v).isFalse();
         assertThat(v.isDefined()).as("%s.isDefined", v).isTrue();
       });
@@ -53,7 +54,7 @@ class ValueStateChecksContractTest {
     void isUnresolvedTrueOnlyForUnresolvedValue() {
       assertThat(UNRESOLVED.isUnresolved()).isTrue();
       assertThat(UNRESOLVED.isResolved()).isFalse();
-      Stream.of(NULL, UNDEFINED, ERROR, TOMBSTONE, PRESENT).forEach(v -> {
+      Stream.of(NULL, UNDEFINED, ERROR, TOMBSTONE, UNSUPPORTED, PRESENT).forEach(v -> {
         assertThat(v.isUnresolved()).as("%s.isUnresolved", v).isFalse();
         assertThat(v.isResolved()).as("%s.isResolved", v).isTrue();
       });
@@ -63,9 +64,19 @@ class ValueStateChecksContractTest {
     void isErrorTrueOnlyForErrorValue() {
       assertThat(ERROR.isError()).isTrue();
       assertThat(ERROR.isNotError()).isFalse();
-      Stream.of(NULL, UNDEFINED, UNRESOLVED, TOMBSTONE, PRESENT).forEach(v -> {
+      Stream.of(NULL, UNDEFINED, UNRESOLVED, TOMBSTONE, UNSUPPORTED, PRESENT).forEach(v -> {
         assertThat(v.isError()).as("%s.isError", v).isFalse();
         assertThat(v.isNotError()).as("%s.isNotError", v).isTrue();
+      });
+    }
+
+    @Test
+    void isUnsupportedTrueOnlyForUnsupportedValue() {
+      assertThat(UNSUPPORTED.isUnsupported()).isTrue();
+      assertThat(UNSUPPORTED.isSupported()).isFalse();
+      Stream.of(NULL, UNDEFINED, UNRESOLVED, ERROR, TOMBSTONE, PRESENT).forEach(v -> {
+        assertThat(v.isUnsupported()).as("%s.isUnsupported", v).isFalse();
+        assertThat(v.isSupported()).as("%s.isSupported", v).isTrue();
       });
     }
 
@@ -73,7 +84,7 @@ class ValueStateChecksContractTest {
     void isTombstoneTrueOnlyForTombstoneValue() {
       assertThat(TOMBSTONE.isTombstone()).isTrue();
       assertThat(TOMBSTONE.isNotTombstone()).isFalse();
-      Stream.of(NULL, UNDEFINED, UNRESOLVED, ERROR, PRESENT).forEach(v -> {
+      Stream.of(NULL, UNDEFINED, UNRESOLVED, ERROR, UNSUPPORTED, PRESENT).forEach(v -> {
         assertThat(v.isTombstone()).as("%s.isTombstone", v).isFalse();
         assertThat(v.isNotTombstone()).as("%s.isNotTombstone", v).isTrue();
       });
@@ -85,7 +96,7 @@ class ValueStateChecksContractTest {
   class Composite {
 
     static Stream<Arguments> everyValue() {
-      return Stream.of(NULL, UNDEFINED, UNRESOLVED, ERROR, TOMBSTONE, PRESENT).map(Arguments::of);
+      return Stream.of(NULL, UNDEFINED, UNRESOLVED, ERROR, TOMBSTONE, UNSUPPORTED, PRESENT).map(Arguments::of);
     }
 
     @Test

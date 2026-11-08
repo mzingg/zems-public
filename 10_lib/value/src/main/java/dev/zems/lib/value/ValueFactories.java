@@ -6,6 +6,7 @@ import dev.zems.lib.value.builtin.CharacterValue;
 import dev.zems.lib.value.builtin.CurrencyValue;
 import dev.zems.lib.value.builtin.DoubleValue;
 import dev.zems.lib.value.builtin.DurationValue;
+import dev.zems.lib.value.builtin.EnumValue;
 import dev.zems.lib.value.builtin.FloatValue;
 import dev.zems.lib.value.builtin.InetAddressValue;
 import dev.zems.lib.value.builtin.IntegerValue;
@@ -14,12 +15,15 @@ import dev.zems.lib.value.builtin.LocalDateValue;
 import dev.zems.lib.value.builtin.LocalTimeValue;
 import dev.zems.lib.value.builtin.LocaleValue;
 import dev.zems.lib.value.builtin.LongValue;
+import dev.zems.lib.value.builtin.MeasurableValue;
 import dev.zems.lib.value.builtin.OffsetDateTimeValue;
 import dev.zems.lib.value.builtin.PeriodValue;
 import dev.zems.lib.value.builtin.StringValue;
 import dev.zems.lib.value.builtin.TimeInstantValue;
+import dev.zems.lib.value.builtin.TypeValue;
 import dev.zems.lib.value.builtin.UrlValue;
 import dev.zems.lib.value.builtin.UuidValue;
+import dev.zems.lib.value.builtin.VersionValue;
 import dev.zems.lib.value.builtin.YearMonthValue;
 import dev.zems.lib.value.builtin.YearValue;
 import dev.zems.lib.value.builtin.ZoneIdValue;
@@ -48,17 +52,18 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 
-/**
- * Package-private factory implementations for {@code Value.of(...)} — the generic dispatch over arbitrary {@code T}
- * plus the 23 typed {@code of(JdkType)} overloads. Reachable through {@code Value.*} delegates only.
- */
+/** Factory bodies behind the generic and typed {@code Value.of(...)} entries. */
 final class ValueFactories {
 
   private ValueFactories() {}
 
-  // Canonical precondition message for a null typed-factory argument (see CLAUDE.md "Null and error behaviour").
   private static String mustNotBeNull(String name) {
     return name + " must not be null";
+  }
+
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  private static Value<?> ofEnum(Enum<?> constant) {
+    return new EnumValue(constant);
   }
 
   @SuppressWarnings("unchecked")
@@ -90,13 +95,16 @@ final class ValueFactories {
       case Locale l -> of(l);
       case Currency c -> of(c);
       case InetAddress a -> of(a);
+      case TypeName t -> of(t);
+      case Version v -> of(v);
+      case Quantity q -> of(q);
+      case Enum<?> e -> ofEnum(e);
       case List<?> _ -> throw new IllegalArgumentException(
         "Value.of(...) does not accept List - use Value.listOf(...) instead"
       );
       case Set<?> _ -> throw new IllegalArgumentException(
         "Value.of(...) does not accept Set - use Value.setOf(...) instead"
       );
-      // SortedMap is a sub-interface of Map; check it first so the diagnostic points at the right factory.
       case SortedMap<?, ?> _ -> throw new IllegalArgumentException(
         "Value.of(...) does not accept SortedMap - use Value.sortedMapOf(...) instead"
       );
@@ -106,8 +114,6 @@ final class ValueFactories {
       default -> new BoxedValue<>(raw);
     };
   }
-
-  // -- Primitives --
 
   static Value<String> of(String value) {
     if (value == null) {
@@ -154,8 +160,6 @@ final class ValueFactories {
       default -> Value.errorMessage("Unsupported Number type: " + value.getClass().getName(), (Class<N>) Number.class);
     };
   }
-
-  // -- BuiltIn JDK reference types --
 
   static Value<UUID> of(UUID uuid) {
     if (uuid == null) {
@@ -270,6 +274,74 @@ final class ValueFactories {
       return Value.errorMessage(mustNotBeNull("InetAddress"), InetAddress.class);
     }
     return new InetAddressValue(value);
+  }
+
+  static Value<TypeName> of(TypeName typeName) {
+    if (typeName == null) {
+      return Value.errorMessage(mustNotBeNull("TypeName"), TypeName.class);
+    }
+    return new TypeValue(typeName);
+  }
+
+  static Value<Version> of(Version version) {
+    if (version == null) {
+      return Value.errorMessage(mustNotBeNull("Version"), Version.class);
+    }
+    return new VersionValue(version);
+  }
+
+  static Value<Quantity> of(Quantity quantity) {
+    if (quantity == null) {
+      return Value.errorMessage(mustNotBeNull("Quantity"), Quantity.class);
+    }
+    return new MeasurableValue(quantity);
+  }
+
+  static Value<Quantity> of(long magnitude, Unit unit) {
+    return of(BigDecimal.valueOf(magnitude), unit);
+  }
+
+  static Value<Quantity> of(BigInteger magnitude, Unit unit) {
+    return of(magnitude == null ? null : new BigDecimal(magnitude), unit);
+  }
+
+  static Value<Quantity> of(BigDecimal magnitude, Unit unit) {
+    if (magnitude == null) {
+      return Value.errorMessage(mustNotBeNull("Magnitude"), Quantity.class);
+    }
+    if (unit == null) {
+      return Value.errorMessage(mustNotBeNull("Unit"), Quantity.class);
+    }
+    return new MeasurableValue(Quantity.of(magnitude, unit));
+  }
+
+  static Value<Quantity> of(long magnitude, Currency currency) {
+    return of(BigDecimal.valueOf(magnitude), currency);
+  }
+
+  static Value<Quantity> of(BigInteger magnitude, Currency currency) {
+    return of(magnitude == null ? null : new BigDecimal(magnitude), currency);
+  }
+
+  static Value<Quantity> of(BigDecimal magnitude, Currency currency) {
+    if (magnitude == null) {
+      return Value.errorMessage(mustNotBeNull("Magnitude"), Quantity.class);
+    }
+    if (currency == null) {
+      return Value.errorMessage(mustNotBeNull("Currency"), Quantity.class);
+    }
+    return of(magnitude, Units.currency(currency));
+  }
+
+  static Value<TypeName> typeOf(Class<?> type) {
+    if (type == null) {
+      return Value.errorMessage(mustNotBeNull("Class"), TypeName.class);
+    }
+    String name = type.getName();
+    if (!TypeName.isQualifiedName(name)) {
+      return Value.errorMessage("Invalid type name: " + name, TypeName.class);
+    }
+    return new TypeValue(new TypeName(name));
   }
 
   static Value<UUID> randomUuid() {

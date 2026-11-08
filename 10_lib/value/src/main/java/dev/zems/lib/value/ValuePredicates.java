@@ -9,6 +9,7 @@ import dev.zems.lib.value.builtin.CharacterValue;
 import dev.zems.lib.value.builtin.CurrencyValue;
 import dev.zems.lib.value.builtin.DoubleValue;
 import dev.zems.lib.value.builtin.DurationValue;
+import dev.zems.lib.value.builtin.EnumValue;
 import dev.zems.lib.value.builtin.FloatValue;
 import dev.zems.lib.value.builtin.InetAddressValue;
 import dev.zems.lib.value.builtin.IntegerValue;
@@ -19,6 +20,7 @@ import dev.zems.lib.value.builtin.LocalTimeValue;
 import dev.zems.lib.value.builtin.LocaleValue;
 import dev.zems.lib.value.builtin.LongValue;
 import dev.zems.lib.value.builtin.MapValue;
+import dev.zems.lib.value.builtin.MeasurableValue;
 import dev.zems.lib.value.builtin.OffsetDateTimeValue;
 import dev.zems.lib.value.builtin.PeriodValue;
 import dev.zems.lib.value.builtin.SetValue;
@@ -26,35 +28,22 @@ import dev.zems.lib.value.builtin.ShortValue;
 import dev.zems.lib.value.builtin.SortedMapValue;
 import dev.zems.lib.value.builtin.StringValue;
 import dev.zems.lib.value.builtin.TimeInstantValue;
+import dev.zems.lib.value.builtin.TypeValue;
 import dev.zems.lib.value.builtin.UrlValue;
 import dev.zems.lib.value.builtin.UuidValue;
+import dev.zems.lib.value.builtin.VersionValue;
 import dev.zems.lib.value.builtin.YearMonthValue;
 import dev.zems.lib.value.builtin.YearValue;
 import dev.zems.lib.value.builtin.ZoneIdValue;
 import dev.zems.lib.value.builtin.ZonedDateTimeValue;
 
-/**
- * Type-check facet of {@link Value}: the single-type {@code isXxx()} predicates over each {@code BuiltInValue} subtype
- * plus the element-aware {@link #isListOf}, {@link #isSetOf}, {@link #isMapOf} checks.
- *
- * <p>
- * {@code Value<T>} extends this interface so callers see these methods directly on {@code Value}; this type exists
- * purely to keep the {@link Value} source readable.
- */
+/** Type-check facet of {@link Value}: the {@code is...()} predicates over the built-in subtypes. */
 public interface ValuePredicates {
-  /**
-   * Returns true if {@code v} is a typed wrapper whose wrapped JDK value is NOT an instance of {@code type}. Used by
-   * {@link #isListOf}, {@link #isSetOf}, {@link #isMapOf}, and {@link #isSortedMapOf}.
-   *
-   * <p>
-   * Collection wrappers, {@link BoxedValue}, {@link CoreValue}, and state markers all answer "doesn't wrap" — only
-   * scalar {@code BuiltInValue} subtypes can match a JDK type via their unboxed payload.
-   */
   private static boolean notWrapsType(Value<?> v, Class<?> type) {
     if (v.isList() || v.isSet() || v.isMap() || v.isSortedMap()) {
       return true;
     }
-    return !(v instanceof BuiltInValue<?> b) || !type.isInstance(Value.unbox(b));
+    return !(v instanceof BuiltInValue<?> b) || !type.isInstance(b.unbox());
   }
 
   default boolean isString() {
@@ -69,6 +58,7 @@ public interface ValuePredicates {
     return this instanceof CharacterValue;
   }
 
+  /** True for the six primitive number wrappers; a {@code BigInteger} or {@code BigDecimal} answers {@code false}. */
   default boolean isNumber() {
     return (
       this instanceof IntegerValue ||
@@ -168,8 +158,25 @@ public interface ValuePredicates {
     return this instanceof InetAddressValue;
   }
 
+  default boolean isTypeName() {
+    return this instanceof TypeValue;
+  }
+
+  default boolean isVersion() {
+    return this instanceof VersionValue;
+  }
+
+  default boolean isQuantity() {
+    return this instanceof MeasurableValue;
+  }
+
+  default boolean isEnum() {
+    return this instanceof EnumValue<?>;
+  }
+
   /**
-   * Returns true if this is a {@link ListValue} whose elements all wrap the given Java type.
+   * True for a {@link ListValue} whose elements are all built-in scalars wrapping {@code elementType}. An empty list
+   * answers {@code true} for every type, and a collection element never matches.
    */
   default boolean isListOf(Class<?> elementType) {
     if (!(this instanceof ListValue<?> lv)) {
@@ -184,7 +191,8 @@ public interface ValuePredicates {
   }
 
   /**
-   * Returns true if this is a {@link SetValue} whose elements all wrap the given Java type.
+   * True for a {@link SetValue} whose elements are all built-in scalars wrapping {@code elementType}. An empty set
+   * answers {@code true} for every type, and a collection element never matches.
    */
   default boolean isSetOf(Class<?> elementType) {
     if (!(this instanceof SetValue<?> sv)) {
@@ -199,8 +207,8 @@ public interface ValuePredicates {
   }
 
   /**
-   * Returns true if this is a {@link MapValue} whose keys are all instances of {@code keyType} and whose values all
-   * wrap {@code valueType}.
+   * True for a {@link MapValue} whose keys are all instances of {@code keyType} and whose values are all built-in
+   * scalars wrapping {@code valueType}. An empty map answers {@code true} for every pair of types.
    */
   default boolean isMapOf(Class<?> keyType, Class<?> valueType) {
     if (!(this instanceof MapValue<?, ?> mv)) {
@@ -218,8 +226,8 @@ public interface ValuePredicates {
   }
 
   /**
-   * Returns true if this is a {@link SortedMapValue} whose keys are all instances of {@code keyType} and whose values
-   * all wrap {@code valueType}.
+   * True for a {@link SortedMapValue} whose keys are all instances of {@code keyType} and whose values are all
+   * built-in scalars wrapping {@code valueType}. An empty map answers {@code true} for every pair of types.
    */
   default boolean isSortedMapOf(Class<?> keyType, Class<?> valueType) {
     if (!(this instanceof SortedMapValue<?, ?> sm)) {

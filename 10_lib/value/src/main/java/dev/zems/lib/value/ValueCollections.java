@@ -5,7 +5,7 @@ import dev.zems.lib.value.builtin.MapValue;
 import dev.zems.lib.value.builtin.SetValue;
 import dev.zems.lib.value.builtin.SortedMapValue;
 import dev.zems.lib.value.cache.ValueCache;
-import dev.zems.lib.value.marshal.descriptor.TypeDescriptor;
+import dev.zems.lib.value.valueio.descriptor.TypeDescriptor;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -17,11 +17,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Function;
 
-/**
- * Package-private factory implementations for {@link ListValue}, {@link SetValue}, and {@link MapValue}: varargs,
- * pre-wrapped, and map-and-wrap variants of {@code listOf}, {@code setOf}, and {@code mapOf} plus the empty-collection
- * singletons. Reachable through {@code Value.*} delegates only.
- */
+/** Factory bodies behind the collection entries on {@link Value}: {@code listOf}, {@code setOf}, {@code mapOf}, ... */
 final class ValueCollections {
 
   private static final TypeDescriptor<Object> ANY = TypeDescriptor.of(Object.class.getName(), Object.class);
@@ -138,7 +134,6 @@ final class ValueCollections {
       return Value.errorMessage("Map must not be null", mapErrorType());
     }
     for (var entry : wrappedEntries.entrySet()) {
-      // there are map implementations that support null keys
       if (entry.getKey() == null) {
         return Value.errorMessage(MAP_KEYS_NOT_NULL, mapErrorType());
       }
@@ -227,14 +222,8 @@ final class ValueCollections {
     return ValueCache.INSTANCE.emptySortedMap();
   }
 
-  // --- Typed (descriptor-injecting) factories. The element/value descriptor — typically a
-  // TypeDescriptor.oneOf(...) — is stamped onto the collection value so a heterogeneous collection
-  // self-describes on the inferred-write path. Heterogeneous elements can't be pinned to one concrete
-  // E, so the element type binds to the descriptor's (usually Object) and the elements arrive as
-  // Value<? extends E>. ---
-
   @SafeVarargs
-  @SuppressWarnings("unchecked") // Value<? extends E> -> Value<E>: erased at runtime, the descriptor governs the wire
+  @SuppressWarnings("unchecked")
   static <E> Value<List<Value<E>>> listOfTyped(TypeDescriptor<E> elementType, Value<? extends E>... elements) {
     if (elementType == null) {
       return Value.errorMessage("elementType must not be null", listErrorType());
@@ -249,7 +238,6 @@ final class ValueCollections {
       }
       copy.add((Value<E>) e);
     }
-    // `copy` is method-local; the ListValue constructor snapshots it (List.copyOf), so no factory-side wrap is needed.
     return new ListValue<>(copy, elementType);
   }
 
@@ -269,7 +257,7 @@ final class ValueCollections {
       }
       copy.add((Value<E>) e);
     }
-    return new SetValue<>(copy, elementType); // SetValue's constructor snapshots (Set.copyOf)
+    return new SetValue<>(copy, elementType);
   }
 
   @SuppressWarnings("unchecked")
@@ -293,7 +281,7 @@ final class ValueCollections {
       }
       copy.put(entry.getKey(), (Value<V>) entry.getValue());
     }
-    return new MapValue<>(copy, valueType); // MapValue's constructor snapshots (Map.copyOf)
+    return new MapValue<>(copy, valueType);
   }
 
   @SuppressWarnings("unchecked")
@@ -320,7 +308,7 @@ final class ValueCollections {
       }
       copy.put(entry.getKey(), (Value<V>) entry.getValue());
     }
-    return new SortedMapValue<>(copy, valueType); // SortedMapValue's constructor snapshots (new TreeMap)
+    return new SortedMapValue<>(copy, valueType);
   }
 
   @SuppressWarnings("unchecked")
