@@ -11,3 +11,5 @@ built for the current JDK and released on Maven Central.
 - [Setup](docs/setup.md) — the JDK floor and the coordinates of each library.
 - [Contributing](https://github.com/mzingg/zems-public/blob/main/CONTRIBUTING.md) — how to contribute, the licence, and
   forking.
+- [Self-Reinforcing Agentic Delivery](docs/agentic-delivery/README.md) — an essay on how a delivery process run by
+  coding agents could improve itself.

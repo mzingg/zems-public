@@ -151,3 +151,146 @@ footer {
   color: var(--muted);
   font-size: 0.9rem;
 }
+dl.stage {
+  margin: 1rem 0 2rem;
+  padding: 0.25rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.stage-field {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--line);
+}
+.stage-field:first-child {
+  border-top: none;
+}
+.stage-field dt {
+  padding-top: 0.15rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.stage-field dd,
+.stage-field ol {
+  margin: 0;
+}
+.stage-field li {
+  margin: 0.2rem 0;
+}
+@media (max-width: 36rem) {
+  .stage-field {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+}
+ol.journey {
+  list-style: none;
+  margin: 1.5rem 0 2rem 0.5rem;
+  padding-left: 0;
+  border-left: 2px solid var(--line);
+}
+.journey-state {
+  position: relative;
+  margin: 0;
+  padding-left: 1.25rem;
+  font-weight: 600;
+}
+.journey-state::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 0.5em;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.journey-gate {
+  margin: 0.4rem 0;
+  padding: 0.5rem 0 0.5rem 1.25rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.journey-gate dl,
+.stepper-gate dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.2rem 1rem;
+  margin: 0.4rem 0 0;
+}
+.journey-gate dt,
+.stepper-gate dt {
+  font-weight: 600;
+}
+.journey-gate dd,
+.stepper-gate dd {
+  margin: 0;
+}
+.stepper {
+  margin: 1.5rem 0 2rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.stepper-states {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+.stepper-states li {
+  margin: 0;
+}
+.stepper button {
+  font: inherit;
+  cursor: pointer;
+}
+.stepper-states button {
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--fg);
+  font-size: 0.9rem;
+}
+.stepper-states button[aria-current='step'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.stepper-gate {
+  min-height: 7rem;
+}
+.stepper-gate p {
+  margin: 0;
+}
+.stepper-gate dt {
+  color: var(--muted);
+}
+.stepper-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.stepper-controls button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--bg);
+}
+.stepper-controls button.secondary {
+  background: none;
+  color: var(--accent);
+}
+.stepper-controls button[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}

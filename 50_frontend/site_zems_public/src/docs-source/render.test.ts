@@ -7,6 +7,8 @@ import {
   ALPHA_DOCS_README,
   ALPHA_SETUP,
   createFixtureRepo,
+  ESSAY_FIRST,
+  ESSAY_SECOND,
   type FixtureRepo,
   SUITE_README,
 } from '@/docs-source/test-support/fixture-repo';
@@ -75,6 +77,41 @@ describe('renderPage', () => {
     expect(page.html).toContain('<table>');
     expect(page.html).toContain('<a href="/alpha">alpha</a>');
     expect(page.html).toContain('<a href="/guide">Guide</a>');
+  });
+
+  it('renders a stage fence as a definition list with its links pointed at page URLs', () => {
+    const page = renderPage(ESSAY_FIRST, source('docs/essay/first.md'), sources, headings);
+
+    expect(page.html).toContain('<dl class="stage">');
+    expect(page.html).toContain('<dt>Purpose</dt><dd>show a stage card</dd>');
+    expect(page.html).toContain('<dd>the reader; see the <a href="/guide">guide</a></dd>');
+    expect(page.html).toContain(
+      '<dt>Steps</dt><dd><ol>\n<li>read the <code>card</code></li>\n<li>follow the link</li>'
+    );
+    expect(page.html).not.toContain('language-stage');
+  });
+
+  it('renders a gates fence as a journey ladder carrying its data', () => {
+    const page = renderPage(ESSAY_SECOND, source('docs/essay/second.md'), sources, headings);
+
+    expect(page.html).toContain('<ol class="journey" data-journey="');
+    expect(page.html).toContain('<li class="journey-state">Idea</li>');
+    expect(page.html).toContain('<li class="journey-gate"><strong>Jot Gate</strong><dl><dt>Checks</dt><dd>none</dd>');
+    expect(page.html).toContain('<dt>Human decision</dt><dd>the owner accepts</dd>');
+  });
+
+  it('throws when a stage fence links to nothing published', () => {
+    const markdown = '# Broken\n\n```stage\nPurpose: see [x](missing.md)\n```\n';
+
+    expect(() => renderPage(markdown, source('docs/guide.md'), sources, headings)).toThrow(BrokenDocLinkError);
+  });
+
+  it('names the source when a block fence does not follow its form', () => {
+    const markdown = '# Broken\n\n```gates\n-- a gate before any state | x | y\n```\n';
+
+    expect(() => renderPage(markdown, source('docs/guide.md'), sources, headings)).toThrow(
+      /^docs\/guide\.md: a gate line needs a state before it/
+    );
   });
 
   it('throws when the source has no first-level heading', () => {

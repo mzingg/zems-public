@@ -79,6 +79,38 @@ export const ALPHA_UNLINKED = `# Unlinked
 Nobody links here.
 `;
 
+export const ESSAY_README = `# Essay
+
+A multi-page essay, read [the second page](second.md) first, then [the first](first.md).
+`;
+
+export const ESSAY_FIRST = `# First
+
+A stage card with a link into the suite.
+
+\`\`\`stage
+Purpose: show a stage card
+Who: the reader; see the [guide](../guide.md)
+Steps:
+1. read the \`card\`
+2. follow the link
+Way back: none
+\`\`\`
+`;
+
+export const ESSAY_SECOND = `# Second
+
+A journey ladder.
+
+\`\`\`gates
+Idea
+-- Jot Gate | none | none
+Backlog
+-- Specification Gate | work item linter | the owner accepts
+Open
+\`\`\`
+`;
+
 export const BETA_README = `# ZEMS Beta
 
 ZEMS Beta is not published.
@@ -95,6 +127,9 @@ export function createFixtureRepo(): FixtureRepo {
   };
   write('README.md', SUITE_README);
   write('docs/guide.md', SUITE_GUIDE);
+  write('docs/essay/README.md', ESSAY_README);
+  write('docs/essay/first.md', ESSAY_FIRST);
+  write('docs/essay/second.md', ESSAY_SECOND);
   write('10_lib/alpha/pom.xml', MARKED_POM);
   write('10_lib/alpha/CLAUDE.md', '# Alpha internals\n');
   write('10_lib/alpha/README.md', ALPHA_README);

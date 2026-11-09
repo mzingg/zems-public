@@ -30,7 +30,7 @@ function inEntryOrder(pages: DocSource[], order: string[], titles: Map<string, s
 }
 
 function suiteGroup(sources: DocSource[], titles: Map<string, string>): NavGroup {
-  const suite = sources.filter((source) => source.library === null);
+  const suite = sources.filter((source) => source.library === null && source.section === null);
   const overview = suite.filter((source) => source.slug === '');
   const pages = suite.filter((source) => source.slug !== '').sort(byTitle(titles));
   return {
@@ -65,12 +65,37 @@ function libraryGroup(
   };
 }
 
-/** The suite group, then one group per published library in source order; `titles` is keyed by source path. */
+function sectionGroup(
+  section: string,
+  sources: DocSource[],
+  titles: Map<string, string>,
+  read: (source: DocSource) => string
+): NavGroup {
+  const own = sources.filter((source) => source.section === section);
+  const entry = own.find((source) => source.slug === section);
+  const pages = own.filter((source) => source !== entry);
+  const ordered = inEntryOrder(pages, entry ? linkOrder(entry, read) : [], titles);
+  const item = (source: DocSource): NavItem => ({label: titles.get(source.sourcePath)!, href: pageUrl(source.slug)});
+  return {
+    label: entry ? titles.get(entry.sourcePath)! : section,
+    items: [...(entry ? [{label: OVERVIEW, href: pageUrl(entry.slug)}] : []), ...ordered.map(item)],
+  };
+}
+
+/**
+ * The suite group, one group per published library in source order, then one group per docs section in source order;
+ * `titles` is keyed by source path.
+ */
 export function navigation(
   sources: DocSource[],
   titles: Map<string, string>,
   read: (source: DocSource) => string
 ): NavGroup[] {
   const libraries = [...new Set(sources.flatMap((source) => (source.library === null ? [] : [source.library])))];
-  return [suiteGroup(sources, titles), ...libraries.map((library) => libraryGroup(library, sources, titles, read))];
+  const sections = [...new Set(sources.flatMap((source) => (source.section === null ? [] : [source.section])))];
+  return [
+    suiteGroup(sources, titles),
+    ...libraries.map((library) => libraryGroup(library, sources, titles, read)),
+    ...sections.map((section) => sectionGroup(section, sources, titles, read)),
+  ];
 }

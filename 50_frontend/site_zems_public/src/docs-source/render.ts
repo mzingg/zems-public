@@ -7,6 +7,7 @@ import remarkParse from 'remark-parse';
 import remarkRehype from 'remark-rehype';
 import {unified} from 'unified';
 import {visit} from 'unist-util-visit';
+import {expandBlocks} from './blocks.ts';
 import {type HeadingIndex, publishedUrl, resolveLink, titleHeading} from './links.ts';
 import {rehypeMermaid} from './rehype-mermaid.ts';
 import type {DocSource} from './sources.ts';
@@ -26,9 +27,10 @@ function plainText(node: Paragraph | undefined): string {
 }
 
 /**
- * Renders a source to HTML without its title heading, with every link pointed at its page URL.
+ * Renders a source to HTML without its title heading, with every link pointed at its page URL and the `stage` and
+ * `gates` fences expanded.
  *
- * @throws Error when the source has no first-level heading
+ * @throws Error when the source has no first-level heading or a block fence does not follow its form
  * @throws BrokenDocLinkError when a link points at nothing published
  */
 export function renderPage(
@@ -41,6 +43,7 @@ export function renderPage(
   const title = titleHeading(tree);
   if (!title) throw new Error(`Missing '# ' title in ${from.sourcePath}`);
   tree.children.splice(tree.children.indexOf(title), 1);
+  expandBlocks(tree, from.sourcePath);
 
   visit(tree, ['link', 'definition'], (node) => {
     const linkOrDefinition = node as Link | Definition;

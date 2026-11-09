@@ -79,7 +79,7 @@
     release/<version> git tag.
   -->
   <properties>
-    <revision>0.0.12</revision>
+    <revision>0.0.13</revision>
     <!-- Reproducible builds: fixed timestamp for all archive entries. REQUIRED on Maven 3 — without it,
          maven-archiver falls back to the SOURCE_DATE_EPOCH env var, which the nix dev shell sets to
          1980-01-01T00:00:00Z, two seconds below the JDK jar tool's minimum (zip timestamps start at

@@ -8,7 +8,7 @@ Add the dependency:
 <dependency>
   <groupId>dev.zems.lib</groupId>
   <artifactId>value</artifactId>
-  <version>0.0.12</version>
+  <version>0.0.13</version>
 </dependency>
 ```
 

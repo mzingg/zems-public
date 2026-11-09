@@ -11,6 +11,15 @@ const SUITE_GROUP: NavGroup = {
   ],
 };
 
+const ESSAY_GROUP: NavGroup = {
+  label: 'Essay',
+  items: [
+    {label: 'Overview', href: '/essay'},
+    {label: 'Second', href: '/essay/second'},
+    {label: 'First', href: '/essay/first'},
+  ],
+};
+
 const ALPHA_SOURCE = {
   label: 'Source',
   href: 'https://github.com/mzingg/zems-public/tree/main/10_lib/alpha',
@@ -39,7 +48,7 @@ describe('navigation', () => {
     return navigation(sources, titlesOf(repo.root, sources), (source) => readSource(repo.root, source));
   }
 
-  it('builds the suite group and one group per published library', () => {
+  it('builds the suite group, one group per published library and one group per docs section', () => {
     expect(navigationOf()).toEqual([
       SUITE_GROUP,
       {
@@ -53,7 +62,18 @@ describe('navigation', () => {
           ALPHA_SOURCE,
         ],
       },
+      ESSAY_GROUP,
     ]);
+  });
+
+  it('orders a section by its entry page links, then by title, and labels a section without an entry by its name', () => {
+    repo.write('docs/essay/zz-appendix.md', '# Appendix\n\nUnlinked.\n');
+    repo.write('docs/notes/one.md', '# One\n\nA note.\n');
+
+    const [, , essay, notes] = navigationOf();
+
+    expect(essay.items.map((item) => item.label)).toEqual(['Overview', 'Second', 'First', 'Appendix']);
+    expect(notes).toEqual({label: 'notes', items: [{label: 'One', href: '/notes/one'}]});
   });
 
   it('orders the docs pages the entry page does not link by title', () => {
@@ -77,7 +97,7 @@ describe('navigation', () => {
     repo.write('10_lib/beta/pom.xml', MARKED_POM);
 
     expect(navigationOf()).toEqual([
-      ...before,
+      ...before.slice(0, 2),
       {
         label: 'ZEMS Beta',
         items: [
@@ -86,6 +106,7 @@ describe('navigation', () => {
           {label: 'Source', href: 'https://github.com/mzingg/zems-public/tree/main/10_lib/beta', external: true},
         ],
       },
+      ESSAY_GROUP,
     ]);
   });
 });

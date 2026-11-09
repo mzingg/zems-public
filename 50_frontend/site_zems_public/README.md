@@ -21,6 +21,7 @@ npm run start      # serves target/site at http://localhost:40201
 
 ## Editing content
 
-The site holds no content of its own. Edit the root `README.md` and `docs/*.md` for the suite pages, and a library's
-`README.md` and `docs/*.md` for its area; a library appears on the site once its POM is marked
-`<zems.public>true</zems.public>`. A relative link that points at nothing published fails the build.
+The site holds no content of its own. Edit the root `README.md` and `docs/*.md` for the suite pages, a folder
+`docs/<section>/` with its own `README.md` for a multi-page section such as an essay, and a library's `README.md` and
+`docs/*.md` for its area; a library appears on the site once its POM is marked `<zems.public>true</zems.public>`. A
+relative link that points at nothing published fails the build.

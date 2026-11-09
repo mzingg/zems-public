@@ -29,13 +29,16 @@ describe('sources', () => {
 
     expect([...sources].sort(byPath)).toEqual(
       [
-        {sourcePath: 'README.md', slug: '', library: null},
-        {sourcePath: 'docs/guide.md', slug: 'guide', library: null},
-        {sourcePath: '10_lib/alpha/README.md', slug: 'alpha', library: 'alpha'},
-        {sourcePath: '10_lib/alpha/docs/README.md', slug: 'alpha/docs', library: 'alpha'},
-        {sourcePath: '10_lib/alpha/docs/diagram.md', slug: 'alpha/docs/diagram', library: 'alpha'},
-        {sourcePath: '10_lib/alpha/docs/setup.md', slug: 'alpha/docs/setup', library: 'alpha'},
-        {sourcePath: '10_lib/alpha/docs/unlinked.md', slug: 'alpha/docs/unlinked', library: 'alpha'},
+        {sourcePath: 'README.md', slug: '', library: null, section: null},
+        {sourcePath: 'docs/guide.md', slug: 'guide', library: null, section: null},
+        {sourcePath: 'docs/essay/README.md', slug: 'essay', library: null, section: 'essay'},
+        {sourcePath: 'docs/essay/first.md', slug: 'essay/first', library: null, section: 'essay'},
+        {sourcePath: 'docs/essay/second.md', slug: 'essay/second', library: null, section: 'essay'},
+        {sourcePath: '10_lib/alpha/README.md', slug: 'alpha', library: 'alpha', section: null},
+        {sourcePath: '10_lib/alpha/docs/README.md', slug: 'alpha/docs', library: 'alpha', section: null},
+        {sourcePath: '10_lib/alpha/docs/diagram.md', slug: 'alpha/docs/diagram', library: 'alpha', section: null},
+        {sourcePath: '10_lib/alpha/docs/setup.md', slug: 'alpha/docs/setup', library: 'alpha', section: null},
+        {sourcePath: '10_lib/alpha/docs/unlinked.md', slug: 'alpha/docs/unlinked', library: 'alpha', section: null},
       ].sort(byPath)
     );
   });
@@ -70,9 +73,25 @@ describe('sources', () => {
 
     expect(betaSources).toEqual(
       [
-        {sourcePath: '10_lib/beta/README.md', slug: 'beta', library: 'beta'},
-        {sourcePath: '10_lib/beta/docs/hidden.md', slug: 'beta/docs/hidden', library: 'beta'},
+        {sourcePath: '10_lib/beta/README.md', slug: 'beta', library: 'beta', section: null},
+        {sourcePath: '10_lib/beta/docs/hidden.md', slug: 'beta/docs/hidden', library: 'beta', section: null},
       ].sort(byPath)
+    );
+  });
+
+  it('collects a docs section without an entry page under the section name', () => {
+    repo.write('docs/notes/one.md', '# One\n\nA note.\n');
+
+    expect(collectSources(repo.root).filter((source) => source.section === 'notes')).toEqual([
+      {sourcePath: 'docs/notes/one.md', slug: 'notes/one', library: null, section: 'notes'},
+    ]);
+  });
+
+  it('throws when a docs section and a library produce the same slug', () => {
+    repo.write('docs/alpha/README.md', '# Alpha essay\n\nSame slug as the alpha library.\n');
+
+    expect(() => collectSources(repo.root)).toThrow(
+      "Duplicate page slug 'alpha' from docs/alpha/README.md and 10_lib/alpha/README.md"
     );
   });
 
@@ -100,6 +119,7 @@ describe('sources', () => {
     ['value', '/value'],
     ['value/docs', '/value/docs'],
     ['value/docs/setup', '/value/docs/setup'],
+    ['essay/first', '/essay/first'],
   ])('maps slug %p to page URL %p', (slug, url) => {
     expect(pageUrl(slug)).toBe(url);
   });

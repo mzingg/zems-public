@@ -91,6 +91,26 @@ test('mermaid renders on the page and stays fenced in the twin @Smoke', async ({
   expect(await twin.text()).toContain('```mermaid\n');
 });
 
+test('a docs section has its own navigation group, stage cards and a gate stepper @Smoke', async ({page, request}) => {
+  await page.goto('/agentic-delivery');
+
+  await expect(page.getByRole('heading', {level: 1, name: 'Self-Reinforcing Agentic Delivery'})).toBeVisible();
+  const nav = page.getByTestId('doc-nav');
+  await expect(nav.getByText('Self-Reinforcing Agentic Delivery', {exact: true})).toBeVisible();
+  await expect(nav.locator('a[href="/agentic-delivery/process"]')).toBeVisible();
+
+  await page.goto('/agentic-delivery/process');
+  const stepper = page.getByTestId('journey-stepper');
+  await expect(stepper).toContainText('From Idea to Backlog through the Jot Gate');
+  await stepper.getByRole('button', {name: 'Pass the Jot Gate'}).click();
+  await expect(stepper).toContainText('Specification Gate');
+  await expect(page.locator('dl.stage').first()).toBeVisible();
+  await expect(page.locator('dl.stage dt').first()).toHaveText('Purpose');
+
+  const twin = await request.get('/agentic-delivery/process.md');
+  expect(await twin.text()).toContain('```stage\n');
+});
+
 test('every page declares its icons and the browser default /favicon.ico is served @Smoke', async ({page, request}) => {
   await page.goto('/value/docs');
   const icoLink = page.locator('link[rel="icon"][href^="/favicon.ico"]');

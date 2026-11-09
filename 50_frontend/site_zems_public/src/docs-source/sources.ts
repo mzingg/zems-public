@@ -9,11 +9,13 @@ export const SITE_NAME = 'ZEMS';
 
 const PUBLIC_MARKER = '<zems.public>true</zems.public>';
 const LIBRARIES_DIR = '10_lib';
+const DOCS_DIR = 'docs';
 
 export type DocSource = {
   sourcePath: string; // repo-relative, posix: 'README.md', 'docs/setup.md', '10_lib/value/docs/setup.md'
-  slug: string; // '' (landing), 'setup', 'value', 'value/docs', 'value/docs/setup'
-  library: string | null; // 'value', or null for suite pages
+  slug: string; // '' (landing), 'setup', 'value', 'value/docs', 'value/docs/setup', 'essay', 'essay/first'
+  library: string | null; // 'value', or null for suite and section pages
+  section: string | null; // 'essay' for the pages of docs/essay/, or null for suite and library pages
 };
 
 // The module directory is the working directory of `next build`, jest and the twin script alike.
@@ -45,22 +47,44 @@ function markdownFiles(root: string, dir: string): string[] {
     .sort();
 }
 
+function subdirectories(root: string, dir: string): string[] {
+  const absolute = path.join(root, dir);
+  if (!fs.existsSync(absolute)) return [];
+  return fs
+    .readdirSync(absolute, {withFileTypes: true})
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+}
+
 function exists(root: string, sourcePath: string): boolean {
   return fs.existsSync(path.join(root, sourcePath));
 }
 
+function pageName(fileName: string): string {
+  return fileName.slice(0, -'.md'.length);
+}
+
 export function collectSources(root: string): DocSource[] {
   const sources: DocSource[] = [];
-  if (exists(root, 'README.md')) sources.push({sourcePath: 'README.md', slug: '', library: null});
-  for (const name of markdownFiles(root, 'docs')) {
-    sources.push({sourcePath: `docs/${name}`, slug: name.slice(0, -'.md'.length), library: null});
+  if (exists(root, 'README.md')) sources.push({sourcePath: 'README.md', slug: '', library: null, section: null});
+  for (const name of markdownFiles(root, DOCS_DIR)) {
+    sources.push({sourcePath: `${DOCS_DIR}/${name}`, slug: pageName(name), library: null, section: null});
+  }
+  for (const section of subdirectories(root, DOCS_DIR)) {
+    for (const name of markdownFiles(root, `${DOCS_DIR}/${section}`)) {
+      const slug = name === 'README.md' ? section : `${section}/${pageName(name)}`;
+      sources.push({sourcePath: `${DOCS_DIR}/${section}/${name}`, slug, library: null, section});
+    }
   }
   for (const library of publishedLibraries(root)) {
     const base = `${LIBRARIES_DIR}/${library}`;
-    if (exists(root, `${base}/README.md`)) sources.push({sourcePath: `${base}/README.md`, slug: library, library});
+    if (exists(root, `${base}/README.md`)) {
+      sources.push({sourcePath: `${base}/README.md`, slug: library, library, section: null});
+    }
     for (const name of markdownFiles(root, `${base}/docs`)) {
-      const slug = name === 'README.md' ? `${library}/docs` : `${library}/docs/${name.slice(0, -'.md'.length)}`;
-      sources.push({sourcePath: `${base}/docs/${name}`, slug, library});
+      const slug = name === 'README.md' ? `${library}/docs` : `${library}/docs/${pageName(name)}`;
+      sources.push({sourcePath: `${base}/docs/${name}`, slug, library, section: null});
     }
   }
 
