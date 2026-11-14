@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31
@@ -28,14 +28,12 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Cache local Maven repository
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      # -Ddependency-check.skip: the OWASP scan bound into releaseGate runs in the maintainer's monorepo (release and
-      # promote gates) before anything is promoted here; this repo keeps no NVD key or data.
       - name: Build with Maven
-        run: nix develop --command mvn -B -T 1C -PreleaseGate -Ddependency-check.skip=true verify --file pom.xml
+        run: nix develop --command mvn -B -T 1C -PreleaseGate verify --file pom.xml

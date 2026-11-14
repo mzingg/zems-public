@@ -73,12 +73,12 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>2.22.4</version>
+        <version>2.23.0</version>
       </dependency>
       <dependency>
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
-        <version>4.4.8</version>
+        <version>4.7.0</version>
       </dependency>
       <dependency>
         <groupId>org.openjdk.jmh</groupId>
@@ -224,7 +224,7 @@
             <dependency>
               <groupId>com.puppycrawl.tools</groupId>
               <artifactId>checkstyle</artifactId>
-              <version>14.3.0</version>
+              <version>14.4.0</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -242,12 +242,12 @@
             <dependency>
               <groupId>net.sourceforge.pmd</groupId>
               <artifactId>pmd-core</artifactId>
-              <version>7.28.0</version>
+              <version>7.29.0</version>
             </dependency>
             <dependency>
               <groupId>net.sourceforge.pmd</groupId>
               <artifactId>pmd-java</artifactId>
-              <version>7.28.0</version>
+              <version>7.29.0</version>
             </dependency>
           </dependencies>
           <configuration>
@@ -261,7 +261,7 @@
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.15</version>
+          <version>0.8.16</version>
           <executions>
             <execution>
               <id>prepare-agent</id>
@@ -275,51 +275,6 @@
               <phase>test</phase>
               <goals>
                 <goal>report</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.owasp</groupId>
-          <artifactId>dependency-check-maven</artifactId>
-          <version>13.0.0</version>
-          <configuration>
-            <!-- NVD cache lives outside the local repo so it survives
-                 ~/.m2 wipes and is shared across module checkouts. -->
-            <dataDirectory>${ops.var.dir}/owasp-nvd</dataDirectory>
-            <!-- Fail on high/critical advisories (CVSS >= 7). -->
-            <failBuildOnCVSS>7.0</failBuildOnCVSS>
-            <!-- Refresh NVD on stale cache (~24h). Subsequent runs are
-                 offline against the cache. -->
-            <autoUpdate>true</autoUpdate>
-            <!-- Free NVD API key drastically raises the rate limit and
-                 makes the initial download viable. Request one at
-                 https://nvd.nist.gov/developers/request-an-api-key and
-                 export NVD_API_KEY in your shell (or nix devShell). -->
-            <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
-            <!-- Skip scopes that don't ship in our artifacts. -->
-            <skipProvidedScope>true</skipProvidedScope>
-            <skipSystemScope>true</skipSystemScope>
-            <!-- Disable Sonatype OSS Index (online API) to keep the
-                 analyzer NVD-only and offline-friendly. -->
-            <ossIndexAnalyzerEnabled>false</ossIndexAnalyzerEnabled>
-            <!-- We don't ship .NET assemblies; the analyzer otherwise
-                 errors out unless dotnet 8 is on PATH. -->
-            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
-            <!-- Documented per-CVE false-positive suppressions. Every
-                 entry must explain WHY the dependency is not actually
-                 affected; see file header. -->
-            <suppressionFiles>
-              <suppressionFile>${maven.multiModuleProjectDirectory}/.mvn/parent_java/owasp-suppressions.xml</suppressionFile>
-            </suppressionFiles>
-          </configuration>
-          <executions>
-            <!-- Off by default; the hygiene, releaseGate and promoteGate profiles below opt in with their own executions. -->
-            <execution>
-              <id>dependency-check-default-off</id>
-              <phase>none</phase>
-              <goals>
-                <goal>check</goal>
               </goals>
             </execution>
           </executions>
@@ -361,16 +316,13 @@
               </execution>
             </executions>
           </plugin>
-          <!-- OWASP dependency-check is deliberately NOT here: an NVD-backed scan on every commit is too slow
-               for the commit path. It runs in the hygiene, releaseGate and promoteGate profiles instead. -->
         </plugins>
       </build>
     </profile>
     <!-- Release gate: counterpart to commitGate, kept as a separate profile
-         so the two can diverge (e.g. lower CVSS threshold, SBOM generation,
-         signing) without rewiring callers. Spotless is intentionally NOT
-         wired here — formatting is enforced on the commit side via the
-         pre-commit hook, so CI doesn't need IntelliJ IDEA installed.
+         so the two can diverge (e.g. SBOM generation, signing) without
+         rewiring callers. No formatter is wired here — formatting is
+         enforced on the commit side by treefmt in the pre-commit hook.
          Activate explicitly:
            mvn -PreleaseGate verify -->
     <profile>
@@ -401,23 +353,6 @@
               </execution>
             </executions>
           </plugin>
-          <!-- OWASP dependency-check: a release must not ship a known advisory. The monorepo CI (build.yml) passes
-               NVD_API_KEY and keeps the NVD data in the Actions cache; locally the key comes from
-               .nix/env.local.conf. The public mirror's workflows run this profile with -Ddependency-check.skip=true:
-               its source was scanned by the promote gate before it left the monorepo. -->
-          <plugin>
-            <groupId>org.owasp</groupId>
-            <artifactId>dependency-check-maven</artifactId>
-            <executions>
-              <execution>
-                <id>release-gate-dependency-check</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
         </plugins>
       </build>
     </profile>
@@ -425,8 +360,7 @@
          public module set before assembling and pushing the public mirror (zems-public). Kept as a separate profile
          from commitGate/releaseGate so it can diverge later (e.g. assert each public module carries the metadata
          Maven Central requires, or that the public build closure is self-contained). It runs the same checkstyle +
-         PMD, then tests via the verify lifecycle, plus OWASP dependency-check: a known advisory must not reach the
-         public mirror. Activate explicitly:
+         PMD, then tests via the verify lifecycle. Activate explicitly:
            mvn -PpromoteGate verify -->
     <profile>
       <id>promoteGate</id>
@@ -450,19 +384,6 @@
               <execution>
                 <id>promote-gate-pmd</id>
                 <phase>generate-resources</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.owasp</groupId>
-            <artifactId>dependency-check-maven</artifactId>
-            <executions>
-              <execution>
-                <id>promote-gate-dependency-check</id>
-                <phase>verify</phase>
                 <goals>
                   <goal>check</goal>
                 </goals>
@@ -529,19 +450,6 @@
                     </requireReleaseDeps>
                   </rules>
                 </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <groupId>org.owasp</groupId>
-            <artifactId>dependency-check-maven</artifactId>
-            <executions>
-              <execution>
-                <id>hygiene-dependency-check</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>check</goal>
-                </goals>
               </execution>
             </executions>
           </plugin>

@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -37,7 +37,7 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Cache local Maven repository
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -68,12 +68,11 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
         # Sequential (no -T): gpg-agent does not handle parallel signing reliably, and central-publishing
         # aggregates the bundle at the reactor end. The -T1C from .mvn/maven.config is overridden back to
-        # a single thread here. -Ddependency-check.skip: the OWASP scan ran in the monorepo's promote gate before
-        # this tag existed; this repo keeps no NVD key or data.
+        # a single thread here.
         run: |
           echo "Releasing dev.zems ${GITHUB_REF_NAME#release/} to Maven Central"
           nix develop .#release --command \
-            mvn -B -T1 -Prelease,releaseGate -Ddependency-check.skip=true \
+            mvn -B -T1 -Prelease,releaseGate \
               -s .mvn/release-settings.xml \
               -pl 10_lib/value -am \
               deploy

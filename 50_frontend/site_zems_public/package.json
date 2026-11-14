@@ -2,6 +2,7 @@
   "name": "site_zems_public",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "PORT=40201 next dev --turbopack",
     "build": "next build && node scripts/write-raw-docs.ts",
@@ -14,7 +15,7 @@
     "github-slugger": "2.0.0",
     "mdast-util-to-string": "4.0.0",
     "mermaid": "12.3.0",
-    "next": "16.4.5",
+    "next": "16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "rehype-slug": "6.0.0",
@@ -34,9 +35,9 @@
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "baseline-browser-mapping": "2.11.35",
+    "baseline-browser-mapping": "2.11.37",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.4.5",
+    "eslint-config-next": "16.4.6",
     "jest": "30.5.2",
     "jest-environment-jsdom": "30.5.2",
     "typescript": "6.0.3"

@@ -24,7 +24,7 @@ buildNpmPackage {
   version = prettierVersion;
   src = ./.;
 
-  npmDepsHash = "sha256-Y6Oh9fUqvVl97dm8S1ssWP/oP3ylMpun3Xx9oYr5nHs=";
+  npmDepsHash = "sha256-3qpNZ9gmHz1hDSyjxxyzX4c7m1Y8bOOmofW8hxroxn0=";
 
   nodejs = nodejs_24;
   nativeBuildInputs = [ makeWrapper ];

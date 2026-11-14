@@ -87,11 +87,9 @@
             <!-- Dependency vulnerability audit, gated behind the hygiene,
                  releaseGate and promoteGate profiles (see below). Fails the build on
                  moderate-or-higher advisories, except those listed in
-                 npm-audit-allowlist.json (the counterpart of owasp-suppressions.xml;
-                 see npm-audit.mjs). Deliberately off the commit
-                 path, like OWASP dependency-check in parent_java: an advisory
-                 in a lockfile nobody touched must not block an unrelated
-                 commit. -->
+                 npm-audit-allowlist.json (see npm-audit.mjs). Deliberately off
+                 the commit path: an advisory in a lockfile nobody touched
+                 must not block an unrelated commit. -->
             <execution>
               <id>npm_audit</id>
               <goals>
@@ -187,7 +185,7 @@
       </build>
     </profile>
     <!-- Promote gate: npm lint + npm audit, run by 80_ops/promote/promote.sh before a module ships to the
-         public mirror. Mirrors the promoteGate profile in parent_java, which runs OWASP dependency-check here. -->
+         public mirror. Mirrors the promoteGate profile in parent_java. -->
     <profile>
       <id>promoteGate</id>
       <build>
@@ -211,8 +209,8 @@
         </pluginManagement>
       </build>
     </profile>
-    <!-- Hygiene gate: npm audit, the frontend counterpart of OWASP dependency-check in parent_java. Off the commit
-         path so an advisory in a lockfile nobody touched cannot block an unrelated commit. Activate explicitly:
+    <!-- Hygiene gate: npm audit. Off the commit path so an advisory in a lockfile nobody touched cannot block an
+         unrelated commit. Activate explicitly:
            mvn -Phygiene verify -->
     <profile>
       <id>hygiene</id>

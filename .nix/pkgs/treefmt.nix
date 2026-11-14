@@ -73,7 +73,7 @@ in
     ];
   };
 
-  # XML only, via Prettier with @prettier/plugin-xml (Maven POMs, checkstyle/pmd/owasp configs, …).
+  # XML only, via Prettier with @prettier/plugin-xml (Maven POMs, checkstyle/pmd configs, …).
   settings.formatter.prettier-xml = {
     command = "${prettierPkg}/bin/prettier-xml";
     options = [

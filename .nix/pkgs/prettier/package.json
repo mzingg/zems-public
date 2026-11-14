@@ -1,11 +1,11 @@
 {
   "name": "prettier-with-java",
-  "version": "3.9.10",
+  "version": "3.10.1",
   "private": true,
   "description": "Pinned Prettier + plugins (Java, XML), the single formatter engine treefmt drives for this repo.",
   "dependencies": {
     "@prettier/plugin-xml": "3.4.2",
-    "prettier": "3.9.10",
+    "prettier": "3.10.1",
     "prettier-plugin-java": "2.11.0"
   }
 }

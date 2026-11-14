@@ -24,8 +24,6 @@
     <!-- ${maven.multiModuleProjectDirectory} is set by the mvn launcher (it scans upward for the
          .mvn/ directory at the repo root) and is the Maven 3 stand-in for Maven 4's
          ${project.rootDirectory}. -->
-    <ops.dir>${maven.multiModuleProjectDirectory}/80_ops</ops.dir>
-    <ops.var.dir>${ops.dir}/var</ops.var.dir>
     <tools.dir>${maven.multiModuleProjectDirectory}/.nix/tools</tools.dir>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

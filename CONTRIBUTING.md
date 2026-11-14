@@ -26,9 +26,7 @@ nix develop --command mvn -B -PcommitGate verify
 `nix develop` puts the right JDK and Maven on your PATH. The minimum JDK is **Java 25**.
 
 If you do not use Nix, install JDK 25+ and Maven 3.9+ yourself and run `mvn -B -PcommitGate verify`. The same checks
-(checkstyle, PMD, tests) run in CI on every pull request. CI runs `-PreleaseGate -Ddependency-check.skip=true`: the same
-checks, with the OWASP dependency-check scan skipped because it already ran in the maintainer's monorepo before the
-source was promoted.
+(checkstyle, PMD, tests) run in CI on every pull request, there under `-PreleaseGate`.
 
 ## Formatting
 

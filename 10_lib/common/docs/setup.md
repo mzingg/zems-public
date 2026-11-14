@@ -6,7 +6,7 @@ The library runs on JDK 25 or newer and has no runtime dependencies. Its helpers
 <dependency>
   <groupId>dev.zems.lib</groupId>
   <artifactId>common</artifactId>
-  <version>0.0.13</version>
+  <version>0.0.14</version>
   <scope>test</scope>
 </dependency>
 ```

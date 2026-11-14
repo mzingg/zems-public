@@ -1,4 +1,4 @@
-// npm audit with an allowlist: the frontend counterpart of owasp-suppressions.xml in parent_java.
+// npm audit with an allowlist.
 //
 // Runs `npm audit --json` in the current module and fails on any advisory at or above the given level, except those
 // whose GitHub advisory (GHSA) ID is listed in npm-audit-allowlist.json next to this script. npm has no native way to
